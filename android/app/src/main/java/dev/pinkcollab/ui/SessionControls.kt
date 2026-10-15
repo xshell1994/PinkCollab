@@ -37,7 +37,7 @@ internal fun ExitConfirmationDialog(
     AlertDialog(
         onDismissRequest = dismiss,
         icon = { Icon(Icons.AutoMirrored.Outlined.Logout, null, tint = TextMid) },
-        title = { Text("End this runtime?") },
+        title = { Text(T("结束该运行时？", "End this runtime?")) },
         text = {
             Text(
                 "This ends the current OMP process. The conversation stays, but this cannot be undone.",
@@ -48,13 +48,13 @@ internal fun ExitConfirmationDialog(
             TextButton(
                 onClick = rememberHapticOnClick(confirm),
                 colors = ButtonDefaults.textButtonColors(contentColor = TextHigh),
-            ) { Text("End", fontWeight = FontWeight.SemiBold) }
+            ) { Text(T("结束", "End"), fontWeight = FontWeight.SemiBold) }
         },
         dismissButton = {
             TextButton(
                 onClick = rememberHapticOnClick(dismiss),
                 colors = ButtonDefaults.textButtonColors(contentColor = TextMid),
-            ) { Text("Keep running") }
+            ) { Text(T("继续运行", "Keep running")) }
         },
         shape = RoundedCornerShape(24.dp),
         containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -89,19 +89,19 @@ internal fun ComposerRail(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         ComposerRailButton(
-            label = "End",
+            label = T("结束", "End"),
             onClick = onExit,
             enabled = controls.canStop,
             contentColor = TextMid,
         )
         ComposerRailButton(
-            label = "Stop",
+            label = T("停止", "Stop"),
             onClick = { onCommand(SessionUserCommand.Interrupt) },
             enabled = controls.canInterrupt,
             contentColor = TextMid,
         )
         ComposerRailButton(
-            label = "Send",
+            label = T("发送", "Send"),
             onClick = onSend,
             enabled = controls.canSend,
             contentColor = MaterialTheme.colorScheme.onPrimary,
