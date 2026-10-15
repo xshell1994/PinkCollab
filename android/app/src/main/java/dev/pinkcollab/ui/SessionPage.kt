@@ -149,17 +149,17 @@ internal fun SessionPage(
     }
     // Loading is presentation only; subscription readiness still gates runtime actions.
     val workStatus = when {
-        load == LoadState.Loading -> SessionWorkStatus(WorkStatusKind.Loading, "Loading conversation")
+        load == LoadState.Loading -> SessionWorkStatus(WorkStatusKind.Loading, T("正在加载会话", "Loading conversation"))
         load !is LoadState.Ready -> null
         detail.snapshotToken == null && state.host?.connected == true ->
-            SessionWorkStatus(WorkStatusKind.Loading, "Loading conversation")
+            SessionWorkStatus(WorkStatusKind.Loading, T("正在加载会话", "Loading conversation"))
         else -> {
             val current = remember(session, detail.liveItems, detail.streaming.isNotBlank(),
                 state.host?.connection, state.sendProgress) {
                 sessionWorkStatus(detail, state.host, state.sendProgress)
             }
             if (awaitingHistory && (current.kind == WorkStatusKind.Ready || current.kind == WorkStatusKind.OnHost)) {
-                SessionWorkStatus(WorkStatusKind.Loading, "Loading conversation")
+                SessionWorkStatus(WorkStatusKind.Loading, T("正在加载会话", "Loading conversation"))
             } else current
         }
     }
@@ -489,7 +489,7 @@ internal fun SessionPage(
                         ) {
                             Icon(
                                 Icons.Outlined.AttachFile,
-                                contentDescription = "Attach files",
+                                contentDescription = T("添加附件", "Attach files"),
                                 modifier = Modifier.size(20.dp),
                                 tint = if (controls.canAttach) TextMid else Gray400.copy(alpha = 0.34f),
                             )
@@ -509,7 +509,7 @@ internal fun SessionPage(
                                     enabled = inputEnabled,
                                     onClick = { onFileRemoved(file.id) },
                                     label = { Text(file.name, maxLines = 1) },
-                                    trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = "Remove ${file.name}", modifier = Modifier.size(14.dp)) },
+                                    trailingIcon = { Icon(Icons.Outlined.Close, contentDescription = T("移除 ${file.name}", "Remove ${file.name}"), modifier = Modifier.size(14.dp)) },
                                 )
                             }
                         }

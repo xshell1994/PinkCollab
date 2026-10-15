@@ -167,9 +167,9 @@ internal fun ModelPickerSheet(
                                     modifier = Modifier.padding(24.dp),
                                 ) {
                                     Text(state.message, color = MaterialTheme.colorScheme.error)
-                                    OutlinedButton(onClick = rememberHapticOnClick(retry)) { Text("Retry") }
+                                    OutlinedButton(onClick = rememberHapticOnClick(retry)) { Text(T("重试", "Retry")) }
                                 }
-                                else -> Text("No models are available from OMP.", color = TextMid)
+                                else -> Text(T("OMP 暂无可用模型。", "No models are available from OMP."), color = TextMid)
                             }
                         }
                     }
@@ -200,7 +200,7 @@ internal fun ModelPickerHeader(usage: () -> Unit, refresh: () -> Unit, showRefre
         Modifier.fillMaxWidth().padding(start = 20.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text("Models", Modifier.width(IntrinsicSize.Max), style = MaterialTheme.typography.titleLarge,
+        Text(T("模型", "Models"), Modifier.width(IntrinsicSize.Max), style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.SemiBold)
         FlowRow(
             Modifier.weight(1f).padding(start = 8.dp),
@@ -210,12 +210,12 @@ internal fun ModelPickerHeader(usage: () -> Unit, refresh: () -> Unit, showRefre
             if (showRefresh) TextButton(onClick = rememberHapticOnClick(refresh), enabled = canRefresh) {
                 Icon(Icons.Outlined.Refresh, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Reload")
+                Text(T("重新加载", "Reload"))
             }
             TextButton(onClick = rememberHapticOnClick(usage)) {
                 Icon(Icons.Outlined.DataUsage, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Usage")
+                Text(T("用量", "Usage"))
             }
         }
     }
@@ -230,20 +230,20 @@ private fun DefaultModelContent(starting: Boolean, canStart: Boolean, start: () 
         if (starting) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 MorphIndicator(Modifier.size(20.dp), Purple400)
-                Text("Starting OMP…", style = MaterialTheme.typography.bodyMedium, color = TextMid)
+                Text(T("正在启动 OMP…", "Starting OMP…"), style = MaterialTheme.typography.bodyMedium, color = TextMid)
             }
         } else if (error != null) {
-            Text("Could not start OMP\n$error", style = MaterialTheme.typography.bodyMedium,
+            Text(T("无法启动 OMP\n$error", "Could not start OMP\n$error"), style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error)
         } else {
-            Text("Waiting to connect to OMP.", style = MaterialTheme.typography.bodyMedium, color = TextMid)
+            Text(T("等待连接 OMP。", "Waiting to connect to OMP."), style = MaterialTheme.typography.bodyMedium, color = TextMid)
         }
         if (!starting) Button(
             onClick = rememberHapticOnClick(start), enabled = canStart,
             modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-        ) { Text("Retry") }
+        ) { Text(T("重试", "Retry")) }
         TextButton(onClick = rememberHapticOnClick(dismiss), modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
-            Text("Close")
+            Text(T("关闭", "Close"))
         }
     }
 }
@@ -253,9 +253,9 @@ private fun ModelSearchField(query: String, onQueryChange: (String) -> Unit) {
     TextField(
         value = query,
         onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Search models" },
+        modifier = Modifier.fillMaxWidth().semantics { contentDescription = T("搜索模型", "Search models") },
         textStyle = MaterialTheme.typography.bodyMedium,
-        placeholder = { Text("Search models…", style = MaterialTheme.typography.bodyMedium) },
+        placeholder = { Text(T("搜索模型…", "Search models…"), style = MaterialTheme.typography.bodyMedium) },
         leadingIcon = { Icon(Icons.Outlined.Search, contentDescription = null, modifier = Modifier.size(20.dp)) },
         shape = RectangleShape,
         colors = TextFieldDefaults.colors(
@@ -336,7 +336,7 @@ private fun CompactModelRow(model: ModelInfo, selected: Boolean, current: Boolea
                 style = MaterialTheme.typography.bodySmall)
             if (current) {
                 Spacer(Modifier.width(8.dp))
-                Text("Current", style = MaterialTheme.typography.labelSmall)
+                Text(T("当前", "Current"), style = MaterialTheme.typography.labelSmall)
             }
             if (selected) {
                 Spacer(Modifier.width(8.dp))
@@ -365,14 +365,14 @@ private fun ModelPickerActions(dismiss: () -> Unit, apply: () -> Unit, unchanged
                     onClick = rememberHapticOnClick(dismiss),
                     modifier = Modifier.height(SmallButtonHeight),
                     contentPadding = SmallButtonPadding,
-                ) { Text("Cancel") }
+                ) { Text(T("取消", "Cancel")) }
                 Button(
                     onClick = rememberHapticOnClick(if (done) dismiss else apply),
                     enabled = available,
                     modifier = Modifier.height(SmallButtonHeight),
                     contentPadding = SmallButtonPadding,
                 ) {
-                    Text(if (done) "Done" else "Apply")
+                    Text(if (done) T("完成", "Done") else T("应用", "Apply"))
                 }
             }
         }

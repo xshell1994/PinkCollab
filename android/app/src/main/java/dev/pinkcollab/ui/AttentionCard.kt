@@ -72,16 +72,16 @@ internal fun AttentionCard(attention: Attention, enabled: Boolean, respond: (Att
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
                 ) {
                     OutlinedButton(onClick = rememberHapticOnClick { respond(AttentionResponse.Confirmation(attention.id, false)) }, enabled = enabled) {
-                        Text("Decline", fontFamily = FontFamily.SansSerif)
+                        Text(T("拒绝", "Decline"), fontFamily = FontFamily.SansSerif)
                     }
                     PrimaryButton(onClick = { respond(AttentionResponse.Confirmation(attention.id, true)) }, enabled = enabled) {
-                        Text("Confirm", fontFamily = FontFamily.SansSerif)
+                        Text(T("确认", "Confirm"), fontFamily = FontFamily.SansSerif)
                     }
                 }
                 else -> {
                     OutlinedTextField(
                         answer, { answer = it },
-                        label = { Text("Your answer", fontFamily = FontFamily.SansSerif) },
+                        label = { Text(T("你的回答", "Your answer"), fontFamily = FontFamily.SansSerif) },
                         textStyle = MaterialTheme.typography.bodyMedium.copy(fontFamily = FontFamily.SansSerif),
                         minLines = if (attention.type == AttentionType.Editor) 4 else 1,
                         modifier = Modifier.fillMaxWidth(),
@@ -92,7 +92,7 @@ internal fun AttentionCard(attention: Attention, enabled: Boolean, respond: (Att
                     )
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                         PrimaryButton(onClick = { respond(AttentionResponse.Value(attention.id, answer)) }, enabled = enabled) {
-                            Text("Submit", fontFamily = FontFamily.SansSerif)
+                            Text(T("提交", "Submit"), fontFamily = FontFamily.SansSerif)
                         }
                     }
                 }
@@ -102,7 +102,7 @@ internal fun AttentionCard(attention: Attention, enabled: Boolean, respond: (Att
                 modifier = Modifier.align(Alignment.End),
                 enabled = enabled,
                 colors = ButtonDefaults.textButtonColors(contentColor = TextMid),
-            ) { Text("Cancel", fontFamily = FontFamily.SansSerif) }
+            ) { Text(T("取消", "Cancel"), fontFamily = FontFamily.SansSerif) }
         }
     }
 }

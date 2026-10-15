@@ -154,27 +154,27 @@ private fun PairHostSheet(
     ) {
         Column {
             Text(
-                "Connect OMP host",
+                T("连接 OMP 主机", "Connect OMP host"),
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.White,
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Run the pair command on the host and scan the QR code it prints. Expires in 5 minutes.",
+                T("在主机上运行 pair 命令并扫描它显示的二维码。5 分钟内有效。", "Run the pair command on the host and scan the QR code it prints. Expires in 5 minutes."),
                 color = TextMid,
             )
         }
         OutlinedButton(onClick = rememberHapticOnClick(scan), enabled = !busy) {
             Icon(Icons.Outlined.QrCodeScanner, null)
             Spacer(Modifier.size(8.dp))
-            Text("Scan pairing code")
+            Text(T("扫描配对码", "Scan pairing code"))
         }
-        Text("Or enter it manually", style = MaterialTheme.typography.labelLarge, color = TextMid)
+        Text(T("或手动输入", "Or enter it manually"), style = MaterialTheme.typography.labelLarge, color = TextMid)
         OutlinedTextField(
             value = url,
             onValueChange = onURL,
-            label = { Text("Gateway address") },
+            label = { Text(T("网关地址", "Gateway address")) },
             placeholder = { Text("https://dev-server.example.com") },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
@@ -183,7 +183,7 @@ private fun PairHostSheet(
         OutlinedTextField(
             value = token,
             onValueChange = onToken,
-            label = { Text("One-time pairing token") },
+            label = { Text(T("一次性配对令牌", "One-time pairing token")) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !busy,
         )
@@ -206,7 +206,7 @@ private fun PairHostSheet(
                     OrbitDots(Modifier.size(18.dp))
                     Spacer(Modifier.size(8.dp))
                 }
-                Text(if (busy) "Pairing…" else "Pair")
+                Text(if (busy) T("配对中…", "Pairing…") else T("配对", "Pair"))
             }
         }
     }

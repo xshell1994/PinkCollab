@@ -81,9 +81,9 @@ internal fun sessionWorkStatus(
         return when (sendProgress) {
             is SendProgress.Uploading -> SessionWorkStatus(
                 WorkStatusKind.Sending,
-                "Sending file ${sendProgress.fileIndex} of ${sendProgress.fileCount}",
+                T("正在发送文件 ${sendProgress.fileIndex}/${sendProgress.fileCount}", "Sending file ${sendProgress.fileIndex} of ${sendProgress.fileCount}"),
             )
-            SendProgress.Submitting -> SessionWorkStatus(WorkStatusKind.Sending, "Sending message")
+            SendProgress.Submitting -> SessionWorkStatus(WorkStatusKind.Sending, T("正在发送消息", "Sending message"))
         }
     }
     val status = deriveSessionWorkStatus(detail, host)
@@ -92,7 +92,7 @@ internal fun sessionWorkStatus(
             detail.session.status != SessionStatus.Starting
     } ?: return status
     return if (timing.completed && status.kind == WorkStatusKind.Ready) {
-        status.copy(title = "Worked for ${workDurationLabel(timing.elapsedMs)}")
+        status.copy(title = T("用时 ${workDurationLabel(timing.elapsedMs)}", "Worked for ${workDurationLabel(timing.elapsedMs)}"))
     } else if (!timing.completed) status.copy(timing = timing) else status
 }
 
@@ -104,33 +104,33 @@ internal fun workDurationLabel(elapsedMs: Long): String {
 private fun deriveSessionWorkStatus(detail: SessionDetail, host: HostState?): SessionWorkStatus {
     if (host?.connected != true) {
         val title = when (host?.connection) {
-            ConnectionState.Connecting -> "Connecting to host"
-            ConnectionState.Synchronizing -> "Syncing with host"
-            ConnectionState.AuthenticationRequired -> "Host sign-in required"
-            ConnectionState.UpgradeRequired -> "Update required"
-            else -> "Host offline"
+            ConnectionState.Connecting -> T("正在连接主机", "Connecting to host")
+            ConnectionState.Synchronizing -> T("正在与主机同步", "Syncing with host")
+            ConnectionState.AuthenticationRequired -> T("主机需要重新登录", "Host sign-in required")
+            ConnectionState.UpgradeRequired -> T("需要更新", "Update required")
+            else -> T("主机离线", "Host offline")
         }
         return SessionWorkStatus(WorkStatusKind.Offline, title)
     }
     val session = detail.session
     if (session.origin == dev.pinkcollab.data.SessionOrigin.Discovered) {
-        return SessionWorkStatus(WorkStatusKind.OnHost, "Session on host")
+        return SessionWorkStatus(WorkStatusKind.OnHost, T("会话在主机端", "Session on host"))
     }
     val active = session.status == SessionStatus.Running
     if (session.status == SessionStatus.Starting) {
-        return SessionWorkStatus(WorkStatusKind.Starting, "Starting agent", active = active)
+        return SessionWorkStatus(WorkStatusKind.Starting, T("正在启动代理", "Starting agent"), active = active)
     }
     if (session.status == SessionStatus.Stopping) {
-        return SessionWorkStatus(WorkStatusKind.Stopping, "Stopping agent", active = active)
+        return SessionWorkStatus(WorkStatusKind.Stopping, T("正在停止代理", "Stopping agent"), active = active)
     }
     if (session.attention != null || session.needsAttention || session.status == SessionStatus.NeedsInput) {
         return SessionWorkStatus(
             WorkStatusKind.Attention,
-            "Waiting for your input",
+            T("等待你的输入", "Waiting for your input"),
         )
     }
-    if (!session.runtimeAttached) return SessionWorkStatus(WorkStatusKind.Ready, "Ready for a message")
-    if (!active) return SessionWorkStatus(WorkStatusKind.Ready, "Ready for a message")
+    if (!session.runtimeAttached) return SessionWorkStatus(WorkStatusKind.Ready, T("可以发消息了", "Ready for a message"))
+    if (!active) return SessionWorkStatus(WorkStatusKind.Ready, T("可以发消息了", "Ready for a message"))
 
     // A new user turn invalidates any unfinished traces left behind by an interrupted turn.
     // Saved history never supplies current work, even when it contains incomplete tools.
