@@ -88,13 +88,17 @@ jobs:
           TAG="${{ inputs.tag }}"
           TITLE="${{ inputs.title }}"
           [ -n "$TITLE" ] || TITLE="$TAG"
+          printf '%s\n' \
+            '个人 fork 构建（已签名，包名 dev.xin.pinkcollab，可与官方版共存）。' \
+            '' \
+            '- Markdown 增强：表格 / 删除线 / 任务列表 / 链接 / HTML / 图片 / 代码高亮' \
+            '- 设置界面：强调色主题 / 字号 / 消息密度 / 隐藏输入框 / 输入框行数 / 自动检查更新' \
+            > "$RUNNER_TEMP/notes.md"
           if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
             gh release upload "$TAG" ../dist/android/pinkcollab-xin.apk --clobber --repo "${{ github.repository }}"
           else
             gh release create "$TAG" ../dist/android/pinkcollab-xin.apk \
               --repo "${{ github.repository }}" \
               --title "$TITLE" \
-              --notes "个人 fork 构建（已签名，包名 dev.xin.pinkcollab，可与官方版共存）。
-Markdown 增强：表格 / 删除线 / 任务列表 / 链接 / HTML / 图片 / 代码高亮。
-设置界面：强调色主题 / 字号 / 消息密度 / 隐藏输入框 / 输入框行数 / 自动检查更新。"
+              --notes-file "$RUNNER_TEMP/notes.md"
           fi
