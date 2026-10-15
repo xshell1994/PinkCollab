@@ -55,7 +55,8 @@ android {
     namespace = "dev.pinkcollab"
     compileSdk = 36
     defaultConfig {
-        applicationId = "dev.pinkcollab"
+        // 改 applicationId 以与官方版共存（namespace/代码包名不变，无需改代码）
+        applicationId = "dev.xin.pinkcollab"
         minSdk = 26
         targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"

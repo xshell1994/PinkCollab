@@ -1,0 +1,100 @@
+name: Build signed APK
+
+# 用仓库 secret 里的签名密钥构建 release APK（可覆盖升级），并发布到 Release。
+# 手动触发：gh workflow run build-apk.yml --repo xshell1994/PinkCollab
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (e.g. v3.2.2-md-settings-2)"
+        required: true
+        type: string
+      title:
+        description: "Release title"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android SDK packages
+        run: |
+          set -euo pipefail
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$sdkmanager" ] || sdkmanager="$(command -v sdkmanager)"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" 'platforms;android-36' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Configure release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            [ -n "${!name}" ] || { echo "::error::$name is not configured"; exit 1; }
+          done
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pinkcollab-release.p12"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/pinkcollab-release.p12" >> "$GITHUB_ENV"
+          echo "ANDROID_KEYSTORE_PASSWORD=$ANDROID_KEYSTORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"
+
+      - run: chmod +x gradlew
+
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease --console=plain
+
+      - name: Verify APK signature
+        run: >-
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose
+          app/build/outputs/apk/release/app-release.apk
+
+      - name: Stage APK
+        run: |
+          mkdir -p ../dist/android
+          cp app/build/outputs/apk/release/app-release.apk ../dist/android/pinkcollab-xin.apk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: pinkcollab-xin-signed
+          path: dist/android/pinkcollab-xin.apk
+          if-no-files-found: error
+
+      - name: Publish release
+        if: ${{ inputs.tag != '' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          TITLE="${{ inputs.title }}"
+          [ -n "$TITLE" ] || TITLE="$TAG"
+          if gh release view "$TAG" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            gh release upload "$TAG" ../dist/android/pinkcollab-xin.apk --clobber --repo "${{ github.repository }}"
+          else
+            gh release create "$TAG" ../dist/android/pinkcollab-xin.apk \
+              --repo "${{ github.repository }}" \
+              --title "$TITLE" \
+              --notes "个人 fork 构建（已签名，包名 dev.xin.pinkcollab，可与官方版共存）。
+Markdown 增强：表格 / 删除线 / 任务列表 / 链接 / HTML / 图片 / 代码高亮。
+设置界面：强调色主题 / 字号 / 消息密度 / 隐藏输入框 / 输入框行数 / 自动检查更新。"
+          fi

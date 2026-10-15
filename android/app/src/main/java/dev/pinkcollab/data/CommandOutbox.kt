@@ -64,7 +64,7 @@ internal class SqliteCommandOutboxStorage(context: Context) : CommandOutboxStora
         }
     }
     // Retain the existing keystore identity to decrypt receipts left by the upgrade.
-    private val alias = "pinkcollab.command-outbox.v2"
+    private val alias = "xin.pinkcollab.command-outbox.v2"
 
 
     private fun secretKey(): SecretKey {

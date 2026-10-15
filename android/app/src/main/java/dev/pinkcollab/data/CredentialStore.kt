@@ -25,7 +25,7 @@ interface PairedHostStore {
 class CredentialStore(context: Context, private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO) : PairedHostStore {
     private val appContext = context.applicationContext
     private val prefs by lazy { appContext.getSharedPreferences("paired-hosts", Context.MODE_PRIVATE) }
-    private val alias = "pinkcollab.hosts.v1"
+    private val alias = "xin.pinkcollab.hosts.v1"
     private fun key(): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (store.getKey(alias, null) as? SecretKey)?.let { return it }
