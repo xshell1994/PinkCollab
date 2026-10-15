@@ -24,6 +24,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults
 import androidx.compose.material3.pulltorefresh.pullToRefresh
@@ -61,6 +62,10 @@ internal fun SessionPage(
     onAction: (SessionAction) -> Unit,
     onApplyModelSettings: (ModelSettingsChanges) -> Boolean,
     isActive: Boolean = true,
+    composerHidden: Boolean = false,
+    messageFontSize: Float = 12f,
+    codeFontSize: Float = 12f,
+    onShowComposer: () -> Unit = {},
     loadToolDetails: suspend (String, String?) -> ToolDetailPage = { _, _ -> error("Tool details unavailable") },
 ) {
     val load = state.detail
@@ -83,8 +88,8 @@ internal fun SessionPage(
         savedHistory = SavedHistory.Loading,
     )
     val context = LocalContext.current
-    val renderer = remember(context, detail.session.hostId, detail.session.id) {
-        SessionMarkdownRenderer(createSessionMarkwon(context))
+    val renderer = remember(context, detail.session.hostId, detail.session.id, codeFontSize) {
+        SessionMarkdownRenderer(createSessionMarkwon(context, codeFontSize))
     }
     val session = detail.session
     val currentDetailLoader by rememberUpdatedState(loadToolDetails)
@@ -197,7 +202,7 @@ internal fun SessionPage(
         if (lastItemIndex >= 0) timelineState.scrollToItem(lastItemIndex)
     }
     val density = LocalDensity.current
-    val composerClearance = with(density) { composerHeightPx.toDp() } + 12.dp
+    val composerClearance = if (composerHidden) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
     val imeInsets = WindowInsets.ime
     val navigationInsets = WindowInsets.navigationBars
     // IME insets animate every frame. Moving the composer during placement keeps that
@@ -236,7 +241,7 @@ internal fun SessionPage(
         val panelMaxHeight = (maxHeight - composerClearance - keyboardHeight - 12.dp).coerceAtLeast(todoHeaderHeight)
         if (load is LoadState.Ready) MaterialTheme(
             colorScheme = MaterialTheme.colorScheme,
-            typography = SessionTypography,
+            typography = sessionTypographyFor(messageFontSize),
         ) {
             Box(Modifier.fillMaxSize().graphicsLayer { alpha = contentOpacity.value }
                 .pullToRefresh(
@@ -320,6 +325,34 @@ internal fun SessionPage(
             TimelineLoadingState(Modifier.padding(bottom = composerClearance)
                 .testTag(if (load == LoadState.Loading) "sessionLoading" else "historyLoading"))
         }
+        if (composerHidden) {
+            // 输入框已隐藏：底部只留一个轻量浮标，点击唤出。
+            Surface(
+                onClick = onShowComposer,
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .then(keyboardOffset)
+                    .padding(end = 16.dp, bottom = 20.dp)
+                    .testTag("showComposerButton"),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 6.dp,
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Icon(
+                        Icons.Outlined.KeyboardArrowUp,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.primary,
+                    )
+                    Text("输入", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                }
+            }
+        } else {
         Box(
             Modifier
                 .align(Alignment.BottomCenter)
@@ -487,6 +520,7 @@ internal fun SessionPage(
                     modifier = Modifier.align(Alignment.Bottom),
                 )
             }
+        }
         }
         if (todo != null) {
             AnimatedVisibility(todoExpanded, modifier = Modifier.align(Alignment.TopCenter),

@@ -56,6 +56,15 @@ import io.noties.markwon.Markwon
 import io.noties.markwon.MarkwonSpansFactory
 import io.noties.markwon.MarkwonVisitor
 import io.noties.markwon.core.MarkwonTheme
+import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
+import io.noties.markwon.ext.tasklist.TaskListPlugin
+import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.html.HtmlPlugin
+import io.noties.markwon.image.coil.CoilImagesPlugin
+import io.noties.markwon.linkify.LinkifyPlugin
+import io.noties.markwon.syntax.Prism4jSyntaxHighlight
+import io.noties.markwon.syntax.Prism4jThemeDarkula
+import io.noties.prism4j.Prism4j
 import org.commonmark.node.Code
 import org.commonmark.node.StrongEmphasis
 import java.time.Instant
@@ -272,12 +281,36 @@ private fun MessageTime(label: String, modifier: Modifier = Modifier) {
     )
 }
 
-internal fun createSessionMarkwon(context: Context): Markwon =
-    Markwon.builder(context)
+internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f): Markwon {
+    // Prism4j 语法高亮：语言定义由 kapt 注解处理器（prism4j-bundler）生成到 GrammarLocatorDef
+    val prism4j = Prism4j(GrammarLocatorDef())
+    return Markwon.builder(context)
+        // 表格
+        .usePlugin(TablePlugin.create(context))
+        // 删除线 ~~text~~
+        .usePlugin(StrikethroughPlugin.create())
+        // 任务列表 - [ ] / - [x]
+        .usePlugin(TaskListPlugin.create(context))
+        // 裸 URL 自动识别为链接
+        .usePlugin(LinkifyPlugin.create())
+        // 内联 HTML（<br> <sub> 等）
+        .usePlugin(HtmlPlugin.create())
+        // 图片（Coil 异步加载）
+        .usePlugin(CoilImagesPlugin.create(context))
+        // 代码语法高亮（Darkula 主题，匹配 App 深色界面）
+        .usePlugin(
+            io.noties.markwon.syntax.SyntaxHighlightPlugin.create(
+                prism4j,
+                Prism4jThemeDarkula.create(),
+            ),
+        )
         .usePlugin(object : AbstractMarkwonPlugin() {
             override fun configureTheme(builder: MarkwonTheme.Builder) {
                 val maple = ResourcesCompat.getFont(context, dev.pinkcollab.R.font.maple_mono_cn_regular) ?: Typeface.DEFAULT
                 builder.codeTypeface(maple).codeBlockTypeface(maple)
+                // 代码字号可配（convertSpToPx 需 density，用资源显示指标近似）
+                val px = codeFontSizeSp * context.resources.displayMetrics.scaledDensity
+                builder.codeTextSize(px.toInt())
             }
 
             override fun configureVisitor(builder: MarkwonVisitor.Builder) {
@@ -306,6 +339,18 @@ internal fun createSessionMarkwon(context: Context): Markwon =
             }
         })
         .build()
+}
+
+/**
+ * Prism4j 语法定义打包入口：kapt 注解处理器据此生成 [GrammarLocatorDef]。
+ * includes 必须用 Prism4j 支持的真实语言名（见 prism4j-bundler 文档），
+ * 只打包常用语言以控制 APK 体积。
+ */
+@io.noties.prism4j.annotations.PrismBundle(
+    includes = ["clike", "c", "cpp", "java", "kotlin", "javascript", "json", "python", "sql", "yaml", "markup", "go", "css", "markdown"],
+    grammarLocatorClassName = ".GrammarLocatorDef",
+)
+internal class PrismBundleMarker
 
 @Composable
 private fun MarkdownBody(

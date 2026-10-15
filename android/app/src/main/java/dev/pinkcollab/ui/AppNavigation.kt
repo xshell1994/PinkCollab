@@ -5,24 +5,28 @@ import androidx.compose.runtime.saveable.Saver
 internal sealed interface AppRoute {
     data object Tasks : AppRoute
     data object Resources : AppRoute
+    data object Settings : AppRoute
     data class Browser(val hostId: String, val path: String) : AppRoute
 }
 
 internal fun AppRoute.back(): AppRoute = when (this) {
     AppRoute.Tasks -> AppRoute.Tasks
     AppRoute.Resources -> AppRoute.Tasks
+    AppRoute.Settings -> AppRoute.Tasks
     is AppRoute.Browser -> AppRoute.Resources
 }
 
 internal fun AppRoute.savedState(): List<String> = when (this) {
     AppRoute.Tasks -> listOf("sessions")
     AppRoute.Resources -> listOf("resources")
+    AppRoute.Settings -> listOf("settings")
     is AppRoute.Browser -> listOf("browser", hostId, path)
 }
 
 internal fun restoreRoute(state: List<String>): AppRoute = when (state.firstOrNull()) {
     "sessions" -> AppRoute.Tasks
     "resources" -> AppRoute.Resources
+    "settings" -> AppRoute.Settings
     "browser" -> state.getOrNull(1)?.let { hostId ->
         state.getOrNull(2)?.let { path -> AppRoute.Browser(hostId, path) }
     } ?: AppRoute.Tasks

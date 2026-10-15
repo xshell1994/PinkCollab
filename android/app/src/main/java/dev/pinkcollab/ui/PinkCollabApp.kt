@@ -41,6 +41,7 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
     val sessionDisplayCache = remember { mutableStateMapOf<SessionKey, SessionDisplay>() }
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val prefs = remember(context) { AppPreferences(context) }
 
     LaunchedEffect(vm) {
         awaitStartupReadiness(vm.appState)
@@ -106,11 +107,12 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
     val secondaryTitle = when (val current = route) {
         AppRoute.Tasks -> null
         AppRoute.Resources -> "Workspaces"
+        AppRoute.Settings -> "设置"
         is AppRoute.Browser -> browserTitle(app.hosts[current.hostId]?.displayName.orEmpty())
     }
     BackHandler(secondary) { goBack() }
 
-    PinkCollabTheme {
+    PinkCollabTheme(colorScheme = accentScheme(prefs.accentTheme)) {
         Crossfade(
             targetState = startupReady,
             animationSpec = tween(150),
@@ -129,9 +131,11 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
                             retainedDisplay = sessionDisplayCache,
                             vm = vm,
                             selectedSession = selectedSession,
+                            prefs = prefs,
                             actions = TasksScreenActions(
                                 selectSession = { selectedSession = it },
                                 openResources = { route = AppRoute.Resources },
+                                openSettings = { route = AppRoute.Settings },
                                 connectHost = { pairHost = PairHostSheetState(visible = true) },
                                 checkForUpdates = { vm.checkForUpdates(manual = true) },
                                 showVersion = {
@@ -145,6 +149,8 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
                                 ensureSessionListed = vm::ensureSessionListed,
                             ),
                         )
+
+                        AppRoute.Settings -> SettingsScreen(prefs)
 
                         AppRoute.Resources -> ResourcesScreen(
                             app = app,
@@ -212,6 +218,7 @@ private fun TasksRoute(
     selectedSession: SessionKey?,
     actions: TasksScreenActions,
     retainedDisplay: androidx.compose.runtime.snapshots.SnapshotStateMap<SessionKey, SessionDisplay>,
+    prefs: AppPreferences? = null,
 ) {
     val sessions by vm.sessionListState.collectAsStateWithLifecycle()
     val details by vm.sessionDetails.collectAsStateWithLifecycle()
@@ -228,6 +235,7 @@ private fun TasksRoute(
             sendProgress, drafts, fileSelections, selectedSession, usageLoads, runtimeStarts),
         actions = actions,
         retainedDisplay = retainedDisplay,
+        prefs = prefs,
     )
 }
 

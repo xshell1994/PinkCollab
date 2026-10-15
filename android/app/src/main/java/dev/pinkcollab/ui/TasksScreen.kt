@@ -70,6 +70,7 @@ internal data class TasksScreenState(
 internal data class TasksScreenActions(
     val selectSession: (SessionKey) -> Unit,
     val openResources: () -> Unit,
+    val openSettings: () -> Unit = {},
     val connectHost: () -> Unit,
     val checkForUpdates: () -> Unit,
     val showVersion: () -> Unit,
@@ -86,6 +87,7 @@ internal fun TasksScreen(
     state: TasksScreenState,
     actions: TasksScreenActions,
     retainedDisplay: androidx.compose.runtime.snapshots.SnapshotStateMap<SessionKey, SessionDisplay>? = null,
+    prefs: AppPreferences? = null,
 ) {
     val hosts = state.sessions.hosts
     val detailLoads = state.detailLoads
@@ -170,6 +172,7 @@ internal fun TasksScreen(
             },
             showWorkspaces = hosts.isNotEmpty(),
             openResources = openResources,
+            openSettings = actions.openSettings,
             checkForUpdates = actions.checkForUpdates,
             showVersion = actions.showVersion,
         )
@@ -248,6 +251,10 @@ internal fun TasksScreen(
                         ),
                         onAction = { action -> actions.session(session, action) },
                         onApplyModelSettings = { changes -> actions.applyModelSettings(session, changes) },
+                        composerHidden = prefs?.composerHidden == true,
+                        messageFontSize = prefs?.messageFontSize ?: 12f,
+                        codeFontSize = prefs?.codeFontSize ?: 12f,
+                        onShowComposer = { prefs?.setComposerHidden(false) },
                         loadToolDetails = { callId, cursor -> actions.loadToolDetails(session, callId, cursor) },
                     )
                 }
@@ -412,6 +419,7 @@ private fun TasksTopBar(
     onSelectHost: (String?) -> Unit,
     showWorkspaces: Boolean,
     openResources: () -> Unit,
+    openSettings: () -> Unit,
     checkForUpdates: () -> Unit,
     showVersion: () -> Unit,
 ) {
@@ -438,6 +446,10 @@ private fun TasksTopBar(
                 expanded = showConfMenu,
                 onDismissRequest = { showConfMenu = false },
             ) {
+                DropdownMenuItem(
+                    text = { Text("设置") },
+                    onClick = { showConfMenu = false; openSettings() },
+                )
                 DropdownMenuItem(
                     text = { Text("Check for updates") },
                     onClick = { showConfMenu = false; checkForUpdates() },
