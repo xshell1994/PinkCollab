@@ -341,17 +341,6 @@ internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f)
         .build()
 }
 
-/**
- * Prism4j 语法定义打包入口：kapt 注解处理器据此生成 [GrammarLocatorDef]。
- * includes 必须用 Prism4j 支持的真实语言名（见 prism4j-bundler 文档），
- * 只打包常用语言以控制 APK 体积。
- */
-@io.noties.prism4j.annotations.PrismBundle(
-    includes = ["clike", "c", "cpp", "java", "kotlin", "javascript", "json", "python", "sql", "yaml", "markup", "go", "css", "markdown"],
-    grammarLocatorClassName = ".GrammarLocatorDef",
-)
-internal class PrismBundleMarker
-
 @Composable
 private fun MarkdownBody(
     messageId: String,
