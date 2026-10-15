@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.ContentCopy
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material3.*
@@ -203,17 +204,18 @@ private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkd
         ) {
             // 复制整条消息（含代码块）——长按亦可复制，这里给出更直观的入口。
             val copyContext = LocalContext.current
-            Text(
-                T("复制", "Copy"),
+            Icon(
+                Icons.Outlined.ContentCopy,
+                contentDescription = T("复制", "Copy"),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
                     .clickable {
                         copyContext.getSystemService(android.content.ClipboardManager::class.java)
                             .setPrimaryClip(android.content.ClipData.newPlainText("Message", item.text))
                         android.widget.Toast.makeText(copyContext, T("已复制", "Copied"), android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    .padding(vertical = 4.dp),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                    .padding(6.dp)
+                    .size(18.dp),
             )
         }
     }
