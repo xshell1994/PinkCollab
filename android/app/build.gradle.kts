@@ -122,6 +122,8 @@ dependencies {
     implementation("io.noties.markwon:html:4.6.2")
     // 图片渲染（自带 Coil，AI 常输出图片 URL）
     implementation("io.noties.markwon:image-coil:4.6.2")
+    // image-coil 只传递 coil-base:0.13.0，缺 coil.Coil 类（运行时 NoClassDefFoundError），补完整包
+    implementation("io.coil-kt:coil:0.13.0")
     // 代码语法高亮（Prism4j + 注解处理器自动打包语言定义）
     implementation("io.noties.markwon:syntax-highlight:4.6.2")
     implementation("io.noties:prism4j:2.0.0")
