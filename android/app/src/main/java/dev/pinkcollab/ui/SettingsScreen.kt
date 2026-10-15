@@ -31,6 +31,14 @@ internal fun SettingsScreen(prefs: AppPreferences) {
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
         SettingsSection("外观") {
+            // 深色/浅色
+            SettingsSwitch(
+                label = "深色模式",
+                description = "关闭则使用浅色主题",
+                checked = prefs.darkTheme,
+                onCheckedChange = { prefs.applyDarkTheme(it) },
+            )
+            Spacer(Modifier.height(16.dp))
             // 强调色
             SettingsLabel("强调色")
             Row(

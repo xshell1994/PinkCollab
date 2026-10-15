@@ -44,6 +44,7 @@ import com.journeyapps.barcodescanner.ScanOptions
 import dev.pinkcollab.ui.theme.Base0
 import dev.pinkcollab.ui.theme.PrimaryButton
 import dev.pinkcollab.ui.theme.Purple700
+import dev.pinkcollab.ui.theme.ScrimBase
 import dev.pinkcollab.ui.theme.TextMid
 import dev.pinkcollab.ui.theme.rememberHapticOnClick
 import org.json.JSONObject
@@ -90,7 +91,7 @@ internal fun PairHostModal(
         sheetState = sheetState,
         containerColor = Color.Transparent,
         tonalElevation = 0.dp,
-        scrimColor = Color.Black.copy(alpha = 0.64f),
+        scrimColor = ScrimBase.copy(alpha = 0.64f),
         dragHandle = {
             Box(
                 Modifier.fillMaxWidth().background(Purple700),

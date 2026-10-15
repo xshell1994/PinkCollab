@@ -356,7 +356,7 @@ private fun BringOmpEmptyState(modifier: Modifier = Modifier, connectHost: () ->
                         if (index < steps.lastIndex) {
                             HorizontalDivider(
                                 Modifier.padding(start = 50.dp),
-                                color = Color.White.copy(alpha = 0.07f),
+                                color = HairlineBase.copy(alpha = 0.07f),
                             )
                         }
                     }
@@ -666,7 +666,7 @@ private fun TasksPagerBar(
                         .clip(shape)
                         .then(
                             if (selected) Modifier.background(selectedCardFill, shape)
-                            else Modifier.background(Color.White.copy(alpha = 0.055f), shape)
+                            else Modifier.background(FaintFill.copy(alpha = 0.055f), shape)
                         )
                         .semantics {
                             this.selected = selected
@@ -726,7 +726,7 @@ private fun TasksPagerBar(
                 .height(12.dp)
                 .background(
                     Brush.verticalGradient(
-                        colors = listOf(Color.Black.copy(alpha = 0.46f), Color.Transparent),
+                        colors = listOf(ScrimBase.copy(alpha = 0.46f), Color.Transparent),
                     ),
                 ),
         )

@@ -273,7 +273,7 @@ private fun sendingTextShimmer(): Modifier {
             val halfWidth = size.width * 0.35f
             drawRect(
                 brush = Brush.linearGradient(
-                    colors = listOf(TextMid, Color.White, TextMid),
+                    colors = listOf(TextMid, TextHigh, TextMid),
                     start = Offset(center - halfWidth, 0f),
                     end = Offset(center + halfWidth, 0f),
                 ),

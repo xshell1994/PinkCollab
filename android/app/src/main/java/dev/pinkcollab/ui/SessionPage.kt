@@ -226,7 +226,7 @@ internal fun SessionPage(
             elevation = 18.dp,
             shape = composerShape,
             clip = false,
-            ambientColor = Color.Black.copy(alpha = 0.62f),
+            ambientColor = ScrimBase.copy(alpha = 0.62f),
             spotColor = Purple400.copy(alpha = 0.18f),
         )
         .clip(composerShape)
@@ -364,9 +364,9 @@ internal fun SessionPage(
                 .background(
                     Brush.verticalGradient(
                         0.00f to Color.Transparent,
-                        // Reach the work-status strip already dimmed, then fade to black below it.
-                        (32.dp / (composerClearance + 32.dp)) to Color.Black.copy(alpha = 0.60f),
-                        1.00f to Color.Black,
+                        // Reach the work-status strip already dimmed, then fade to base below it.
+                        (32.dp / (composerClearance + 32.dp)) to ScrimBase.copy(alpha = 0.60f),
+                        1.00f to ScrimBase,
                     ),
                 ),
         )

@@ -21,6 +21,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.pinkcollab.BuildConfig
+import dev.pinkcollab.ui.theme.AppAppearance
 import dev.pinkcollab.ui.theme.Base0
 import dev.pinkcollab.ui.theme.PinkCollabTheme
 import dev.pinkcollab.ui.theme.accentScheme
@@ -43,6 +44,8 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember(context) { AppPreferences(context) }
+    // 把偏好同步到全局外观状态（非 @Composable 上下文也能读）。
+    androidx.compose.runtime.SideEffect { AppAppearance.dark = prefs.darkTheme }
 
     LaunchedEffect(vm) {
         awaitStartupReadiness(vm.appState)

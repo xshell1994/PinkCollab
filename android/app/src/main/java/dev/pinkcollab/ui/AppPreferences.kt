@@ -43,6 +43,10 @@ internal class AppPreferences(context: Context) {
     var autoCheckUpdates by mutableStateOf(prefs.getBoolean("auto-check-updates", true))
         private set
 
+    /** 是否深色模式（false=浅色）。 */
+    var darkTheme by mutableStateOf(prefs.getBoolean("dark-theme", true))
+        private set
+
     val accentTheme: AccentTheme get() = AccentTheme.fromKey(accentThemeKey)
 
     fun applyMessageFontSize(value: Float) {
@@ -78,6 +82,11 @@ internal class AppPreferences(context: Context) {
     fun applyAutoCheckUpdates(value: Boolean) {
         autoCheckUpdates = value
         prefs.edit().putBoolean("auto-check-updates", value).apply()
+    }
+
+    fun applyDarkTheme(value: Boolean) {
+        darkTheme = value
+        prefs.edit().putBoolean("dark-theme", value).apply()
     }
 
     companion object {

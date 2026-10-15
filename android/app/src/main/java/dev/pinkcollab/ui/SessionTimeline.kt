@@ -67,7 +67,8 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 
-internal val TimelineBandBase = Color(0xFF0D0A10)
+internal val TimelineBandBase: Color
+    get() = if (dev.pinkcollab.ui.theme.AppAppearance.dark) Color(0xFF0D0A10) else Color(0xFFFAFAFC)
 
 /**
  * Timeline entries form full-width editorial bands. Their flat geometry keeps
@@ -88,7 +89,7 @@ internal fun Modifier.timelineBand(
     )
     .drawBehind {
         drawLine(
-            color = Color.White.copy(alpha = 0.055f),
+            color = HairlineBase.copy(alpha = 0.055f),
             start = Offset(0f, size.height),
             end = Offset(size.width, size.height),
             strokeWidth = 1.dp.toPx(),
@@ -122,7 +123,7 @@ private fun Modifier.userMessageBand(
             size = Size(3.dp.toPx(), size.height),
         )
         drawLine(
-            color = Color.White.copy(alpha = 0.07f),
+            color = HairlineBase.copy(alpha = 0.07f),
             start = Offset(0f, size.height),
             end = Offset(size.width, size.height),
             strokeWidth = 1.dp.toPx(),
@@ -531,7 +532,7 @@ private fun ActivityOperationDetails(
 ) {
     var expanded by rememberSaveable(operation.id) { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxWidth().background(Color.White.copy(alpha = 0.025f), RoundedCornerShape(8.dp)).padding(10.dp),
+        Modifier.fillMaxWidth().background(FaintFill.copy(alpha = 0.025f), RoundedCornerShape(8.dp)).padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         if (showSummary) {

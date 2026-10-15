@@ -317,7 +317,7 @@ private fun WorkspaceRow(workspace: Workspace, enabled: Boolean, onClick: () -> 
         Modifier
             .fillMaxWidth()
             .clip(shape)
-            .background(Color.White.copy(alpha = if (enabled) 0.055f else 0.025f), shape)
+            .background(FaintFill.copy(alpha = if (enabled) 0.055f else 0.025f), shape)
             .clickable(enabled = enabled, onClick = rememberHapticOnClick(onClick))
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
