@@ -70,7 +70,6 @@ internal data class TasksScreenState(
 internal data class TasksScreenActions(
     val selectSession: (SessionKey) -> Unit,
     val openResources: () -> Unit,
-    val openSettings: () -> Unit = {},
     val connectHost: () -> Unit,
     val checkForUpdates: () -> Unit,
     val showVersion: () -> Unit,
@@ -80,6 +79,8 @@ internal data class TasksScreenActions(
     val loadMoreSessions: (String) -> Unit = {},
     val ensureSessionListed: (SessionKey) -> Unit = {},
     val loadToolDetails: suspend (Session, String, String?) -> ToolDetailPage = { _, _, _ -> error("Tool details unavailable") },
+    // 追加在末尾并带默认值，避免破坏既有位置参数构造（测试等）
+    val openSettings: () -> Unit = {},
 )
 
 @Composable
