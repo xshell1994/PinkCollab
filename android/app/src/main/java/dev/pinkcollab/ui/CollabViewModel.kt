@@ -68,6 +68,10 @@ class CollabViewModel(application: Application, savedStateHandle: SavedStateHand
         override fun onLost(network: Network) {
             if (connectivity.activeNetwork == null) repository.networkUnavailable()
         }
+        // 网络恢复时自动重连所有主机（否则网络断开后一直 offline）。
+        override fun onAvailable(network: Network) {
+            repository.reconnectAll()
+        }
     }
 
     private val draftStore = SessionDraftStore(decodeDrafts(

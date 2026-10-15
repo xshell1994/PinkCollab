@@ -119,7 +119,7 @@ internal class HostConnectionSupervisor(
 
         fun start() {
             val currentGeneration = connectionGeneration.incrementAndGet()
-            resetBackoff(currentGeneration)
+            backoffAttempt = 0
             job?.cancel()
             job = scope.launch {
                 if (!isActive || !isCurrent(currentGeneration)) return@launch
@@ -138,9 +138,8 @@ internal class HostConnectionSupervisor(
                         }
                         else -> {
                             emitState(currentGeneration, disconnect.failure)
-                            // 自动重连：指数退避（1s→2s→4s…最多 MaxBackoffMillis），保证不长期 offline。
-                            val wait = nextBackoffMillis(currentGeneration)
-                            delay(wait)
+                            // 自动重连：指数退避（1s→2s→4s…最多 30s），保证不长期 offline。
+                            delay(nextBackoffMillis())
                             if (!isCurrent(currentGeneration)) return@launch
                             emitState(currentGeneration, ConnectionState.Connecting)
                         }
@@ -149,18 +148,11 @@ internal class HostConnectionSupervisor(
             }
         }
 
-        /**
-         * 重连退避：首次 1s，逐次翻倍，最大 [MaxBackoffMillis]。
-         * 成功连上（onOpen）后由 [resetBackoff] 归零，下次断开从 1s 重新开始。
-         */
-        private fun nextBackoffMillis(generation: Long): Long {
+        /** 退避：首次 1s，逐次翻倍，最大 30s；连上后由 onOpen 归零。 */
+        private fun nextBackoffMillis(): Long {
             val attempt = backoffAttempt
-            backoffAttempt = (attempt + 1).coerceAtMost(20)
+            backoffAttempt = (attempt + 1).coerceAtMost(10)
             return (InitialBackoffMillis shl attempt.coerceAtMost(10)).coerceAtMost(MaxBackoffMillis)
-        }
-
-        private fun resetBackoff(generation: Long) {
-            backoffAttempt = 0
         }
 
         fun stop() {
@@ -228,7 +220,7 @@ internal class HostConnectionSupervisor(
                                 return
                             }
                             gzipNegotiated = response.header("Sec-WebSocket-Protocol") == GzipSocketProtocol
-                            resetBackoff(generation)
+                            backoffAttempt = 0
                             emitState(generation, ConnectionState.Synchronizing)
                             synchronized(lock) {
                                 socket = webSocket

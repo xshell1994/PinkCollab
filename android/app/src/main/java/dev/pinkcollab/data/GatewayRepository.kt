@@ -150,6 +150,16 @@ internal class GatewayRepository(
         connections.networkUnavailable(state.value.hosts.filterValues { it.connection != ConnectionState.AuthenticationRequired && it.connection != ConnectionState.UpgradeRequired }.keys)
     }
 
+    /** 网络恢复后重连所有主机（跳过需重新认证/升级的）。 */
+    fun reconnectAll() {
+        state.value.hosts.values
+            .filter {
+                it.connection != ConnectionState.AuthenticationRequired &&
+                    it.connection != ConnectionState.UpgradeRequired
+            }
+            .forEach { host -> connect(host.paired) }
+    }
+
     suspend fun listing(hostId: String, path: String, forceRefresh: Boolean = false) =
         directories.listing(hostId, path, forceRefresh)
 
