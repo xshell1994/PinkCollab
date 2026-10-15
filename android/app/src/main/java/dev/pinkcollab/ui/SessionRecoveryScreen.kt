@@ -133,21 +133,21 @@ internal fun SessionRecoveryScreen(hosts: List<HostState>, actions: TasksScreenA
                                 style = MaterialTheme.typography.titleSmall,
                             )
                             val (label, color) = when (host.connection) {
-                                ConnectionState.Connecting -> "Reconnecting" to BrandPink
-                                ConnectionState.Synchronizing -> "Syncing" to BrandPink
-                                is ConnectionState.Online -> "Connected" to Teal300
-                                is ConnectionState.Offline -> "Offline" to Gray400
-                                ConnectionState.AuthenticationRequired -> "Reconnect required" to Red400
-                                ConnectionState.UpgradeRequired -> "Update required" to Red400
+                                ConnectionState.Connecting -> T("重连中", "Reconnecting") to BrandPink
+                                ConnectionState.Synchronizing -> T("同步中", "Syncing") to BrandPink
+                                is ConnectionState.Online -> T("已连接", "Connected") to Teal300
+                                is ConnectionState.Offline -> T("离线", "Offline") to Gray400
+                                ConnectionState.AuthenticationRequired -> T("需要重新连接", "Reconnect required") to Red400
+                                ConnectionState.UpgradeRequired -> T("需要更新", "Update required") to Red400
                             }
                             Text(label, style = MaterialTheme.typography.labelSmall, color = color)
                         }
                         Spacer(Modifier.height(6.dp))
                         Text(recoveryHostDetail(host), style = MaterialTheme.typography.bodySmall, color = TextMid)
                         if (host.connection == ConnectionState.AuthenticationRequired) {
-                            TextButton(onClick = rememberHapticOnClick(actions.connectHost)) { Text("Reconnect host") }
+                            TextButton(onClick = rememberHapticOnClick(actions.connectHost)) { Text(T("重新连接主机", "Reconnect host")) }
                         } else if (host.connection == ConnectionState.UpgradeRequired) {
-                            TextButton(onClick = rememberHapticOnClick(actions.checkForUpdates)) { Text("Update app") }
+                            TextButton(onClick = rememberHapticOnClick(actions.checkForUpdates)) { Text(T("更新应用", "Update app")) }
                         }
                     }
                 }
@@ -159,7 +159,7 @@ internal fun SessionRecoveryScreen(hosts: List<HostState>, actions: TasksScreenA
             ) {
                 Text(primaryAction.label)
             }
-            TextButton(onClick = rememberHapticOnClick(actions.openResources)) { Text("Open workspaces") }
+            TextButton(onClick = rememberHapticOnClick(actions.openResources)) { Text(T("打开工作区", "Open workspaces")) }
             Spacer(Modifier.weight(1f).heightIn(min = 24.dp))
         }
     }

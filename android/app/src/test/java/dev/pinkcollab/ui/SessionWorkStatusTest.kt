@@ -77,7 +77,7 @@ class SessionWorkStatusTest {
         assertEquals(timing, sessionWorkStatus(detail.copy(liveItems = listOf(tool())), online).timing)
         assertEquals(null, sessionWorkStatus(detail, online.copy(connection = ConnectionState.Offline())).timing)
         val finished = detail.copy(session = session.copy(status = SessionStatus.Idle, workTiming = WorkTiming(83_000, false, true)))
-        assertEquals("Worked for 1m 23s", sessionWorkStatus(finished, online).title)
+        assertEquals("用时 1m 23s", sessionWorkStatus(finished, online).title)
         assertEquals(null, sessionWorkStatus(finished, online).timing)
     }
 

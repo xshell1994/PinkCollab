@@ -60,8 +60,8 @@ jobs:
 
       - run: chmod +x gradlew
 
-      - name: Build signed release APK
-        run: ./gradlew :app:assembleRelease --console=plain
+      - name: Build signed release APK and run unit tests
+        run: ./gradlew :app:assembleRelease :app:testDebugUnitTest --console=plain
 
       - name: Verify APK signature
         run: >-
