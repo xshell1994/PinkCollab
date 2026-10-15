@@ -62,6 +62,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.PlatformTextStyle
+import kotlinx.coroutines.launch
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import dev.pinkcollab.data.*
 import dev.pinkcollab.ui.theme.*
 
@@ -391,6 +394,7 @@ internal fun SessionPage(
                         userMessageIndices = userMessageIndices,
                         timelineState = timelineState,
                         onJump = { index -> navScope.launch { timelineState.animateScrollToItem(index) } },
+                        onScrub = { index -> navScope.launch { timelineState.scrollToItem(index) } },
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
                             .padding(end = 4.dp, top = todoClearance + 12.dp, bottom = composerClearance + 12.dp),
@@ -700,6 +704,7 @@ private fun UserMessageNavigator(
     userMessageIndices: List<Int>,
     timelineState: androidx.compose.foundation.lazy.LazyListState,
     onJump: (Int) -> Unit,
+    onScrub: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (userMessageIndices.isEmpty()) return
@@ -731,7 +736,7 @@ private fun UserMessageNavigator(
                     val fraction = (y / h).coerceIn(0f, 1f)
                     val target = firstIndex + (fraction * span).roundToInt()
                     // 找最近的一条用户消息。
-                    val nearest = userMessageIndices.minByOrNull { kotlin.math.abs(it - target) }
+                    val nearest = userMessageIndices.minByOrNull { abs(it - target) }
                     if (nearest != null) onJump(nearest)
                 }
                 detectTapGestures { offset -> jumpTo(offset.y) }
@@ -741,7 +746,7 @@ private fun UserMessageNavigator(
                     val h = size.height.toFloat().coerceAtLeast(1f)
                     val fraction = (change.position.y / h).coerceIn(0f, 1f)
                     val target = firstIndex + (fraction * span).roundToInt()
-                    userMessageIndices.minByOrNull { kotlin.math.abs(it - target) }?.let(onJump)
+                    userMessageIndices.minByOrNull { abs(it - target) }?.let(onScrub)
                     change.consume()
                 }
             }
