@@ -88,8 +88,8 @@ internal data class TasksScreenActions(
     val openSettings: () -> Unit = {},
     /** 打开搜索（标题/路径/已加载内容）。 */
     val openSearch: () -> Unit = {},
-    /** 从当前工作区新建会话。 */
-    val newSession: () -> Unit = {},
+    /** 从当前工作区新建会话（hostId + 目录）。 */
+    val newSession: (String, String) -> Unit = { _, _ -> },
 )
 
 @Composable
@@ -199,6 +199,19 @@ internal fun TasksScreen(
             openSettings = actions.openSettings,
             openSearch = { searchActive = !searchActive; if (!searchActive) searchQuery = "" },
             newSession = actions.newSession,
+            onNewSession = {
+                // 取当前会话的 cwd（若在会话里），否则取已连接主机的第一个工作区。
+                val currentCwd = selectedSession?.let { key ->
+                    hosts[key.hostId]?.sessions?.firstOrNull { it.id == key.sessionId }?.cwd
+                }
+                val targetHost = selectedSession?.hostId
+                    ?: visibleHosts.values.firstOrNull { it.connected }?.paired?.host?.id
+                val targetPath = currentCwd
+                    ?: targetHost?.let { id -> visibleHosts[id]?.workspaces?.firstOrNull()?.path }
+                if (targetHost != null && targetPath != null) {
+                    actions.newSession(targetHost, targetPath)
+                }
+            },
             checkForUpdates = actions.checkForUpdates,
             showVersion = actions.showVersion,
         )
@@ -504,7 +517,8 @@ private fun TasksTopBar(
     openResources: () -> Unit,
     openSettings: () -> Unit,
     openSearch: () -> Unit,
-    newSession: () -> Unit,
+    newSession: (String, String) -> Unit,
+    onNewSession: () -> Unit,
     checkForUpdates: () -> Unit,
     showVersion: () -> Unit,
 ) {
@@ -525,7 +539,7 @@ private fun TasksTopBar(
         // 搜索会话
         TopBarAction(Icons.Outlined.Search, T("搜索", "Search"), openSearch)
         // 从当前工作区新建会话
-        TopBarAction(Icons.Outlined.Add, T("新建会话", "New session"), newSession)
+        TopBarAction(Icons.Outlined.Add, T("新建", "New"), onNewSession)
         if (showWorkspaces) {
             TopBarAction(Icons.Outlined.FolderOpen, T("工作区", "Workspaces"), openResources)
         }

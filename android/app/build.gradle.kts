@@ -60,8 +60,8 @@ android {
         targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // 版本号需递增（更新检查靠 versionCode 比较）。标签须为规范 vX.Y.Z。
-        versionCode = 3002008
-        versionName = "3.2.8"
+        versionCode = 3002009
+        versionName = "3.2.9"
     }
     testBuildType = providers.gradleProperty("testBuildType").getOrElse("debug")
     signingConfigs {

@@ -154,6 +154,50 @@ internal fun composerThinkingLabel(model: ModelInfo?): String? =
     model?.thinkingLevel?.takeIf { it.isNotBlank() }
 
 @Composable
+internal fun ComposerPlanSwitch(
+    checked: Boolean,
+    enabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    val toggle = rememberHapticOnClick(onToggle)
+    val color = when {
+        !enabled -> Gray400.copy(alpha = 0.34f)
+        checked -> Purple200
+        else -> TextMid
+    }
+    Row(
+        Modifier
+            .sizeIn(minWidth = 48.dp, minHeight = 48.dp)
+            .padding(end = ComposerContentInset)
+            .toggleable(value = checked, interactionSource = remember { MutableInteractionSource() },
+                indication = null, enabled = enabled, role = Role.Switch,
+                onValueChange = { toggle() })
+            .semantics {
+                contentDescription = if (checked) "Plan mode on" else "Plan mode off"
+            },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(T("规划", "Plan"), color = color, style = MaterialTheme.typography.labelMedium)
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = Purple400,
+                checkedBorderColor = Color.Transparent,
+                uncheckedThumbColor = TextMid,
+                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                uncheckedBorderColor = Color.Transparent,
+                disabledCheckedBorderColor = Color.Transparent,
+                disabledUncheckedBorderColor = Color.Transparent,
+            ),
+        )
+    }
+}
+
+@Composable
 internal fun ComposerFastSwitch(
     checked: Boolean,
     enabled: Boolean,

@@ -25,3 +25,11 @@ fun T(zh: String, en: String): String = if (AppLanguage.zh) zh else en
 internal object AppImmersive {
     var active by mutableStateOf(false)
 }
+
+/** 把输入框占位符翻成当前语言（原文为英文常量）。 */
+internal fun localizePlaceholder(english: String): String = when (english) {
+    "What should OMP do?" -> T("让 OMP 做什么？", "What should OMP do?")
+    "Steer OMP…" -> T("引导 OMP…", "Steer OMP…")
+    "Send another prompt…" -> T("再发一条…", "Send another prompt…")
+    else -> english
+}

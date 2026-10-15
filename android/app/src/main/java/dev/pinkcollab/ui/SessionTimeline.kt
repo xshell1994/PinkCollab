@@ -153,6 +153,10 @@ private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkd
         Modifier.timelineBand(tint = Teal300, tintAlpha = 0.026f)
     }
     val contentColor = if (isUser) colors.onPrimaryContainer else TextHigh
+    // 长消息折叠：超过一定字符数默认收起，可展开。
+    val collapsible = !isUser && item.text.length > 1200
+    var expanded by rememberSaveable(item.id) { mutableStateOf(false) }
+    val collapsed = collapsible && !expanded
     Column(
         Modifier
             .fillMaxWidth()
@@ -168,8 +172,21 @@ private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkd
             if (isUser) {
                 Text(item.text, style = MaterialTheme.typography.bodyMedium, color = contentColor)
             } else {
-                MarkdownBody(item.id, item.text, color = contentColor, renderer, onCopy)
+                Box(Modifier.then(if (collapsed) Modifier.heightIn(max = 320.dp) else Modifier)) {
+                    MarkdownBody(item.id, item.text, color = contentColor, renderer, onCopy)
+                }
             }
+        }
+        if (collapsible) {
+            Text(
+                if (expanded) T("收起", "Show less") else T("展开全文", "Show more"),
+                modifier = Modifier
+                    .align(Alignment.Start)
+                    .clickable { expanded = !expanded }
+                    .padding(vertical = 4.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
         }
     }
 }
@@ -313,6 +330,18 @@ internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f)
                 builder.codeTypeface(maple).codeBlockTypeface(maple)
                 val px = codeFontSizeSp * context.resources.displayMetrics.scaledDensity
                 builder.codeTextSize(px.toInt())
+                // 代码块/行内代码底色（随明暗主题）+ 引用块左侧竖线。
+                val codeBg = if (dev.pinkcollab.ui.theme.AppAppearance.dark)
+                    0x1FFFFFFF else 0x14000000
+                val codeFg = if (dev.pinkcollab.ui.theme.AppAppearance.dark)
+                    0xFFE6E1F5.toInt() else 0xFF2A2438.toInt()
+                builder
+                    .codeBlockBackgroundColor(codeBg)
+                    .codeBackgroundColor(0x14FFFFFF)
+                    .codeBlockTextColor(codeFg)
+                    .codeBlockMargin((12 * context.resources.displayMetrics.density).toInt())
+                    .blockQuoteWidth((3 * context.resources.displayMetrics.density).toInt())
+                    .blockQuoteColor(Purple400.toArgb())
             }
 
             override fun configureVisitor(builder: MarkwonVisitor.Builder) {

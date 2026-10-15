@@ -208,6 +208,8 @@ internal fun SessionPage(
         if (lastItemIndex >= 0) timelineState.scrollToItem(lastItemIndex)
     }
     val density = LocalDensity.current
+    // Plan 模式：切换后，下一条消息前缀 "/plan" 以进入 OMP 的只读规划模式（再次切换取消）。
+    var planMode by rememberSaveable(session.id) { mutableStateOf(false) }
     // 回复完成：streaming 由非空转空 → 细微震动（Grok 风格），仅当前活跃页触发。
     val contextForHaptic = LocalContext.current
     var wasStreaming by remember { mutableStateOf(false) }
@@ -260,7 +262,7 @@ internal fun SessionPage(
         )
         .clip(composerShape)
         .background(composerFill)
-    val placeholder = controls.placeholder
+    val placeholder = localizePlaceholder(controls.placeholder)
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val stackComposerControls = maxWidth < 360.dp * density.fontScale
@@ -373,8 +375,10 @@ internal fun SessionPage(
                     )
                     .testTag("showComposerButton"),
                 shape = RoundedCornerShape(24.dp),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 6.dp,
+                // 沉浸模式下浮标半透明，尽量不遮挡消息区。
+                color = if (immersive) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = if (immersive) 0.dp else 6.dp,
             ) {
                 Row(
                     Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
@@ -529,11 +533,15 @@ internal fun SessionPage(
                                     onClick = { showModels = true },
                                     enabled = controls.canChooseModel,
                                 )
-                                ComposerFastSwitch(
-                                    checked = detail.model?.fastModeEnabled == true,
-                                    active = detail.model?.fastModeActive == true,
-                                    enabled = controls.canChooseModel,
-                                    onCheckedChange = { onApplyModelSettings(ModelSettingsChanges(null, null, it)) },
+                                ComposerPlanSwitch(
+                                    checked = planMode,
+                                    enabled = inputEnabled,
+                                    onToggle = {
+                                        planMode = !planMode
+                                        // 切换即把 /plan 或 /plan off 写入草稿，发送后由 OMP 处理。
+                                        val cmd = if (planMode) "/plan" else "/plan off"
+                                        onDraftTextChange(if (draft.text.isBlank()) cmd else "$cmd ${draft.text}")
+                                    },
                                 )
                             }
                         } else {
@@ -548,11 +556,14 @@ internal fun SessionPage(
                                     enabled = controls.canChooseModel,
                                     modifier = Modifier.weight(1f),
                                 )
-                                ComposerFastSwitch(
-                                    checked = detail.model?.fastModeEnabled == true,
-                                    active = detail.model?.fastModeActive == true,
-                                    enabled = controls.canChooseModel,
-                                    onCheckedChange = { onApplyModelSettings(ModelSettingsChanges(null, null, it)) },
+                                ComposerPlanSwitch(
+                                    checked = planMode,
+                                    enabled = inputEnabled,
+                                    onToggle = {
+                                        planMode = !planMode
+                                        val cmd = if (planMode) "/plan" else "/plan off"
+                                        onDraftTextChange(if (draft.text.isBlank()) cmd else "$cmd ${draft.text}")
+                                    },
                                 )
                             }
                         }

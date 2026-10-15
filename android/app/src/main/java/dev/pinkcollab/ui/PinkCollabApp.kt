@@ -182,8 +182,8 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
                                 selectSession = { selectedSession = it },
                                 openResources = { route = AppRoute.Resources },
                                 openSettings = { route = AppRoute.Settings },
-                                newSession = { route = AppRoute.Resources },
-                                connectHost = { pairHost = PairHostSheetState(visible = true) },
+                                newSession = { hostId, path -> vm.createSession(hostId, path) },
+                                connectHost = { pairHost = PairHostSheetState(visible = true, url = prefs.lastGatewayUrl) },
                                 checkForUpdates = { vm.checkForUpdates(manual = true) },
                                 showVersion = {
                                     Toast.makeText(context, "Current version: v${BuildConfig.VERSION_NAME}", Toast.LENGTH_SHORT).show()
@@ -206,7 +206,7 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
                                 noteDirectory(hostId, path)
                                 route = AppRoute.Browser(hostId, path)
                             },
-                            pair = { pairHost = PairHostSheetState(visible = true) },
+                            pair = { pairHost = PairHostSheetState(visible = true, url = prefs.lastGatewayUrl) },
                             refresh = vm::refreshHost,
                             rename = vm::renameHost,
                             forget = vm::forgetHost,
@@ -242,6 +242,7 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
                     pairAttemptSequence += 1
                     val attemptId = pairAttemptSequence
                     pairHost = pairHost.copy(error = null, attemptId = attemptId)
+                    prefs.rememberGatewayUrl(url)
                     vm.pairHost(url, token, attemptId)
                 },
             )
