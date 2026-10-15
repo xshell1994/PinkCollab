@@ -60,6 +60,18 @@ jobs:
 
       - run: chmod +x gradlew
 
+      - name: Verify tag matches app versionName
+        run: |
+          set -euo pipefail
+          TAG="${{ inputs.tag }}"
+          EXPECTED="${TAG#v}"
+          ACTUAL=$(grep -oP 'val appVersionName = "\K[^"]+' app/build.gradle.kts)
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::tag $TAG does not match appVersionName \"$ACTUAL\" in app/build.gradle.kts"
+            exit 1
+          fi
+          echo "tag $TAG matches appVersionName $ACTUAL"
+
       - name: Build signed release APK and run unit tests
         run: ./gradlew :app:assembleRelease :app:testDebugUnitTest --console=plain
 

@@ -59,9 +59,16 @@ android {
         minSdk = 26
         targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        // 版本号需递增（更新检查靠 versionCode 比较）。标签须为规范 vX.Y.Z。
-        versionCode = 3002015
-        versionName = "3.3.5"
+        // 版本号单一来源：versionCode 必须等于 data/AppUpdates.kt 的 versionCodeFromTag("v"+versionName)，
+        // 否则应用内更新会因 versionCode 不匹配而拒绝安装。这里直接按同一公式推导，杜绝写错。
+        val appVersionName = "3.3.6"
+        versionName = appVersionName
+        versionCode = appVersionName.split(".").let { parts ->
+            val major = parts[0].toInt()
+            val minor = parts[1].toInt()
+            val patch = parts[2].toInt()
+            major * 1_000_000 + minor * 1_000 + patch
+        }
     }
     testBuildType = providers.gradleProperty("testBuildType").getOrElse("debug")
     signingConfigs {

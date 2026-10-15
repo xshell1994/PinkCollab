@@ -5,7 +5,10 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -222,9 +225,27 @@ internal fun SessionPage(
     }
     // 沉浸模式：滑动消息区时隐藏顶栏/输入框等，全屏只显示消息区（状态栏不隐藏）。
     var immersive by remember { mutableStateOf(false) }
+    // 是否已处于列表底部（用于「拉到底自动恢复界面」的判断）。
+    var atBottom by remember { mutableStateOf(true) }
     LaunchedEffect(timelineState) {
-        snapshotFlow { timelineState.isScrollInProgress }.collect { scrolling ->
+        snapshotFlow {
+            Triple(
+                timelineState.isScrollInProgress,
+                timelineState.lastScrolledBackward,
+                timelineState.canScrollForward,
+            )
+        }.collect { (scrolling, scrolledBackward, canScrollForward) ->
             if (scrolling) immersive = true
+            // 列表已滚到底部（无法再向前滚动）→ 记录到达底部。
+            // 但若用户正在向后（向上）翻看历史，则不视为「到底」。
+            atBottom = !canScrollForward && !scrolledBackward
+        }
+    }
+    // 拉到底后自动退出沉浸，并恢复顶栏/输入框。
+    LaunchedEffect(immersive, atBottom) {
+        if (immersive && atBottom) {
+            kotlinx.coroutines.delay(320)
+            if (immersive && atBottom) immersive = false
         }
     }
     // 同步到全局，供 TasksScreen 隐藏顶栏（仅当前活跃页写入，避免多页互相覆盖）。
@@ -235,7 +256,9 @@ internal fun SessionPage(
     androidx.compose.runtime.DisposableEffect(isActive) {
         onDispose { AppImmersive.active = false }
     }
-    val composerClearance = if (composerHidden || immersive) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
+    val composerClearanceTarget =
+        if (composerHidden || immersive) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
+    val composerClearance by animateDpAsState(composerClearanceTarget, tween(280), label = "composerClearance")
     val imeInsets = WindowInsets.ime
     val navigationInsets = WindowInsets.navigationBars
     // IME insets animate every frame. Moving the composer during placement keeps that
@@ -361,22 +384,26 @@ internal fun SessionPage(
             TimelineLoadingState(Modifier.padding(bottom = composerClearance)
                 .testTag(if (load == LoadState.Loading) "sessionLoading" else "historyLoading"))
         }
-        if (composerHidden || immersive) {
+        AnimatedVisibility(
+            visible = composerHidden || immersive,
+            enter = fadeIn(tween(220)),
+            exit = fadeOut(tween(200)),
+            modifier = Modifier
+                .align(if (immersiveButtonLeft) Alignment.BottomStart else Alignment.BottomEnd)
+                .then(keyboardOffset)
+                .padding(
+                    start = if (immersiveButtonLeft) 16.dp else 0.dp,
+                    end = if (immersiveButtonLeft) 0.dp else 16.dp,
+                    bottom = 20.dp,
+                ),
+        ) {
             // 输入框隐藏 / 沉浸模式：底部只留一个轻量浮标，点击唤出。
             Surface(
                 onClick = {
                     immersive = false
                     if (composerHidden) onShowComposer()
                 },
-                modifier = Modifier
-                    .align(if (immersiveButtonLeft) Alignment.BottomStart else Alignment.BottomEnd)
-                    .then(keyboardOffset)
-                    .padding(
-                        start = if (immersiveButtonLeft) 16.dp else 0.dp,
-                        end = if (immersiveButtonLeft) 0.dp else 16.dp,
-                        bottom = 20.dp,
-                    )
-                    .testTag("showComposerButton"),
+                modifier = Modifier.testTag("showComposerButton"),
                 shape = RoundedCornerShape(24.dp),
                 // 沉浸模式下浮标半透明，尽量不遮挡消息区。
                 color = if (immersive) MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
@@ -397,7 +424,14 @@ internal fun SessionPage(
                     Text(T("输入", "Input"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 }
             }
-        } else {
+        }
+        AnimatedVisibility(
+            visible = !(composerHidden || immersive),
+            modifier = Modifier.align(Alignment.BottomCenter),
+            enter = slideInVertically(tween(280)) { it } + fadeIn(tween(220)),
+            exit = slideOutVertically(tween(240)) { it } + fadeOut(tween(180)),
+        ) {
+        Box(Modifier.fillMaxWidth()) {
         Box(
             Modifier
                 .align(Alignment.BottomCenter)
@@ -580,6 +614,7 @@ internal fun SessionPage(
                     modifier = Modifier.align(Alignment.Bottom),
                 )
             }
+        }
         }
         }
         if (todo != null && !immersive) {

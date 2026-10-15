@@ -1,5 +1,11 @@
 package dev.pinkcollab.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -185,7 +191,12 @@ internal fun TasksScreen(
 
     val immersive = AppImmersive.active
     Column(Modifier.fillMaxSize()) {
-        if (!immersive) {
+        AnimatedVisibility(
+            visible = !immersive,
+            enter = slideInVertically(tween(280)) { -it } + fadeIn(tween(220)),
+            exit = slideOutVertically(tween(240)) { -it } + fadeOut(tween(180)),
+        ) {
+        Column {
         TasksTopBar(
             hosts = hosts,
             selectedHostId = hostFilter,
@@ -235,6 +246,7 @@ internal fun TasksScreen(
             },
             hasMore = visibleHosts.values.any { it.nextSessionsCursor != null },
         )
+        }
         }
         if (sessions.isEmpty()) {
             Box(Modifier.weight(1f)) {
