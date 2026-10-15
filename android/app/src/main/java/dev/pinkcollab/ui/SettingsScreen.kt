@@ -41,7 +41,7 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                     AccentSwatch(
                         theme = theme,
                         selected = prefs.accentThemeKey == theme.key,
-                        onClick = { prefs.setAccentTheme(theme) },
+                        onClick = { prefs.applyAccentTheme(theme) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -54,7 +54,7 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 valueRange = AppPreferences.MinFontSize..AppPreferences.MaxFontSize,
                 steps = (AppPreferences.MaxFontSize - AppPreferences.MinFontSize).toInt() - 1,
                 display = "${prefs.messageFontSize.toInt()} sp",
-                onChange = { prefs.setMessageFontSize(it) },
+                onChange = { prefs.applyMessageFontSize(it) },
             )
             Spacer(Modifier.height(8.dp))
             // 代码字号
@@ -64,7 +64,7 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 valueRange = AppPreferences.MinCodeFontSize..AppPreferences.MaxCodeFontSize,
                 steps = (AppPreferences.MaxCodeFontSize - AppPreferences.MinCodeFontSize).toInt() - 1,
                 display = "${prefs.codeFontSize.toInt()} sp",
-                onChange = { prefs.setCodeFontSize(it) },
+                onChange = { prefs.applyCodeFontSize(it) },
             )
             Spacer(Modifier.height(12.dp))
             // 消息密度
@@ -72,7 +72,7 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 label = "紧凑消息密度",
                 description = "减小消息间距，同屏显示更多内容",
                 checked = prefs.compactDensity,
-                onCheckedChange = { prefs.setCompactDensity(it) },
+                onCheckedChange = { prefs.applyCompactDensity(it) },
             )
         }
 
@@ -81,7 +81,7 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 label = "隐藏输入框",
                 description = "隐藏底部输入框，需要时用顶栏按钮唤出",
                 checked = prefs.composerHidden,
-                onCheckedChange = { prefs.setComposerHidden(it) },
+                onCheckedChange = { prefs.applyComposerHidden(it) },
             )
             Spacer(Modifier.height(12.dp))
             SettingsSlider(
@@ -90,7 +90,7 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 valueRange = AppPreferences.MinComposerLines.toFloat()..AppPreferences.MaxComposerLines.toFloat(),
                 steps = AppPreferences.MaxComposerLines - AppPreferences.MinComposerLines - 1,
                 display = "${prefs.composerMaxLines} 行",
-                onChange = { prefs.setComposerMaxLines(it.toInt()) },
+                onChange = { prefs.applyComposerMaxLines(it.toInt()) },
             )
         }
 
@@ -99,7 +99,7 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 label = "启动时自动检查更新",
                 description = "关闭后仅在手动点击时检查",
                 checked = prefs.autoCheckUpdates,
-                onCheckedChange = { prefs.setAutoCheckUpdates(it) },
+                onCheckedChange = { prefs.applyAutoCheckUpdates(it) },
             )
         }
 
@@ -152,7 +152,7 @@ private fun AccentSwatch(
             Modifier
                 .size(44.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(Color(theme.primary)),
+                .background(Color(theme.primaryArgb)),
             contentAlignment = Alignment.Center,
         ) {
             if (selected) {

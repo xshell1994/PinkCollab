@@ -285,8 +285,21 @@ internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f)
     // Prism4j 语法高亮：语言定义由 kapt 注解处理器（prism4j-bundler）生成到 GrammarLocatorDef
     val prism4j = Prism4j(GrammarLocatorDef())
     return Markwon.builder(context)
-        // 表格
-        .usePlugin(TablePlugin.create(context))
+        // 表格（配深色主题，与 App 底色一致）
+        .usePlugin(
+            TablePlugin.create(object : TablePlugin.ThemeConfigure {
+                override fun configureTheme(builder: io.noties.markwon.ext.tables.TableTheme.Builder) {
+                    val density = context.resources.displayMetrics.density
+                    builder
+                        .tableCellPadding((8 * density).toInt())
+                        .tableBorderColor(0x33FFFFFF)
+                        .tableBorderWidth((1 * density).toInt())
+                        .tableHeaderRowBackgroundColor(0x1FFFFFFF)
+                        .tableOddRowBackgroundColor(0x0AFFFFFF)
+                        .tableEvenRowBackgroundColor(0x14FFFFFF)
+                }
+            }),
+        )
         // 删除线 ~~text~~
         .usePlugin(StrikethroughPlugin.create())
         // 任务列表 - [ ] / - [x]

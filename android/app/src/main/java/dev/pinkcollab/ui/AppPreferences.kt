@@ -45,37 +45,37 @@ internal class AppPreferences(context: Context) {
 
     val accentTheme: AccentTheme get() = AccentTheme.fromKey(accentThemeKey)
 
-    fun setMessageFontSize(value: Float) {
+    fun applyMessageFontSize(value: Float) {
         messageFontSize = value.coerceIn(MinFontSize, MaxFontSize)
         prefs.edit().putFloat("message-font-size", messageFontSize).apply()
     }
 
-    fun setCodeFontSize(value: Float) {
+    fun applyCodeFontSize(value: Float) {
         codeFontSize = value.coerceIn(MinCodeFontSize, MaxCodeFontSize)
         prefs.edit().putFloat("code-font-size", codeFontSize).apply()
     }
 
-    fun setComposerHidden(value: Boolean) {
+    fun applyComposerHidden(value: Boolean) {
         composerHidden = value
         prefs.edit().putBoolean("composer-hidden", value).apply()
     }
 
-    fun setAccentTheme(theme: AccentTheme) {
+    fun applyAccentTheme(theme: AccentTheme) {
         accentThemeKey = theme.key
         prefs.edit().putString("accent-theme", theme.key).apply()
     }
 
-    fun setCompactDensity(value: Boolean) {
+    fun applyCompactDensity(value: Boolean) {
         compactDensity = value
         prefs.edit().putBoolean("compact-density", value).apply()
     }
 
-    fun setComposerMaxLines(value: Int) {
+    fun applyComposerMaxLines(value: Int) {
         composerMaxLines = value.coerceIn(MinComposerLines, MaxComposerLines)
         prefs.edit().putInt("composer-max-lines", composerMaxLines).apply()
     }
 
-    fun setAutoCheckUpdates(value: Boolean) {
+    fun applyAutoCheckUpdates(value: Boolean) {
         autoCheckUpdates = value
         prefs.edit().putBoolean("auto-check-updates", value).apply()
     }
@@ -102,6 +102,10 @@ internal enum class AccentTheme(
     Amber("amber", "琥珀", 0xFFF2B84B, 0xFFE08A4D),
     Green("green", "翠绿", 0xFF5BD37A, 0xFF4DB8A8),
     Pink("pink", "樱粉", 0xFFE06BA8, 0xFFC069C9);
+
+    /** ARGB 颜色的 Int 形式（供 Compose Color(Int) 使用）。 */
+    val primaryArgb: Int get() = primary.toInt()
+    val secondaryArgb: Int get() = secondary.toInt()
 
     companion object {
         fun fromKey(key: String): AccentTheme = entries.firstOrNull { it.key == key } ?: Purple

@@ -68,10 +68,10 @@ val PinkCollabScheme = darkColorScheme(
  * 按强调色主题生成配色：保留深色底与语义色，只替换 primary/secondary 系列。
  */
 internal fun accentScheme(theme: AccentTheme) = PinkCollabScheme.copy(
-    primary = Color(theme.primary),
-    secondary = Color(theme.secondary),
-    primaryContainer = Color(theme.primary).copy(alpha = 0.35f),
-    onPrimaryContainer = Color(theme.primary).copy(alpha = 0.30f).compositeOver(Base0),
+    primary = Color(theme.primaryArgb),
+    secondary = Color(theme.secondaryArgb),
+    primaryContainer = Color(theme.primaryArgb).copy(alpha = 0.35f).compositeOver(Base0),
+    onPrimaryContainer = Color(theme.primaryArgb).copy(alpha = 0.30f).compositeOver(Base0),
 )
 
 private val MapleMono = FontFamily(
