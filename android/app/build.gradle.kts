@@ -48,7 +48,6 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("org.jetbrains.kotlin.kapt")
 }
 
 android {
@@ -121,13 +120,12 @@ dependencies {
     implementation("io.noties.markwon:linkify:4.6.2")
     implementation("io.noties.markwon:html:4.6.2")
     // 图片渲染（自带 Coil，AI 常输出图片 URL）
-    implementation("io.noties.markwon:image-coil:4.6.2")
-    // image-coil 只传递 coil-base:0.13.0，缺 coil.Coil 类（运行时 NoClassDefFoundError），补完整包
-    implementation("io.coil-kt:coil:0.13.0")
-    // 代码语法高亮（Prism4j + 注解处理器自动打包语言定义）
-    implementation("io.noties.markwon:syntax-highlight:4.6.2")
-    implementation("io.noties:prism4j:2.0.0")
-    kapt("io.noties:prism4j-bundler:2.0.0")
+    // ⚠️ image-coil 依赖老版 Coil，运行时缺 coil.Coil 会 NoClassDefFoundError，暂不启用
+    // implementation("io.noties.markwon:image-coil:4.6.2")
+    // 代码语法高亮（Prism4j 老库 + kapt），暂不启用以确保稳定
+    // implementation("io.noties.markwon:syntax-highlight:4.6.2")
+    // implementation("io.noties:prism4j:2.0.0")
+    // kapt("io.noties:prism4j-bundler:2.0.0")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2")
     testImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")

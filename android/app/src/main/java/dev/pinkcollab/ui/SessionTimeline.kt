@@ -60,11 +60,7 @@ import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.html.HtmlPlugin
-import io.noties.markwon.image.coil.CoilImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
-import io.noties.markwon.syntax.Prism4jSyntaxHighlight
-import io.noties.markwon.syntax.Prism4jThemeDarkula
-import io.noties.prism4j.Prism4j
 import org.commonmark.node.Code
 import org.commonmark.node.StrongEmphasis
 import java.time.Instant
@@ -282,8 +278,6 @@ private fun MessageTime(label: String, modifier: Modifier = Modifier) {
 }
 
 internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f): Markwon {
-    // Prism4j 语法高亮：语言定义由 kapt 注解处理器（prism4j-bundler）生成到 GrammarLocatorDef
-    val prism4j = Prism4j(GrammarLocatorDef())
     return Markwon.builder(context)
         // 表格（配深色主题，与 App 底色一致）
         .usePlugin(
@@ -308,20 +302,12 @@ internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f)
         .usePlugin(LinkifyPlugin.create())
         // 内联 HTML（<br> <sub> 等）
         .usePlugin(HtmlPlugin.create())
-        // 图片（Coil 异步加载）
-        .usePlugin(CoilImagesPlugin.create(context))
-        // 代码语法高亮（Darkula 主题，匹配 App 深色界面）
-        .usePlugin(
-            io.noties.markwon.syntax.SyntaxHighlightPlugin.create(
-                prism4j,
-                Prism4jThemeDarkula.create(),
-            ),
-        )
+        // 注意：图片（image-coil 依赖老版 Coil，运行时缺 coil.Coil 会 NoClassDefFoundError）
+        // 与代码语法高亮（Prism4j）已移除以确保稳定；如需再加，需改用兼容版本的依赖。
         .usePlugin(object : AbstractMarkwonPlugin() {
             override fun configureTheme(builder: MarkwonTheme.Builder) {
                 val maple = ResourcesCompat.getFont(context, dev.pinkcollab.R.font.maple_mono_cn_regular) ?: Typeface.DEFAULT
                 builder.codeTypeface(maple).codeBlockTypeface(maple)
-                // 代码字号可配（convertSpToPx 需 density，用资源显示指标近似）
                 val px = codeFontSizeSp * context.resources.displayMetrics.scaledDensity
                 builder.codeTextSize(px.toInt())
             }
@@ -337,8 +323,6 @@ internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f)
                         }
                         ancestor = ancestor.parent
                     }
-                    // Replace CodeSpan with foreground only: inherit font and size,
-                    // and resolve emphasis from syntax rather than shared paint state.
                     val start = visitor.length()
                     visitor.builder().append(code.literal)
                     visitor.setSpans(start, ForegroundColorSpan(color.toArgb()))
