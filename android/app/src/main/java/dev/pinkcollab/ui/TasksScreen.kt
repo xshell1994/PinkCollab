@@ -9,15 +9,19 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.ExpandLess
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.EditNote
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.RadioButtonChecked
 import androidx.compose.material.icons.outlined.RadioButtonUnchecked
@@ -31,6 +35,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -81,6 +86,10 @@ internal data class TasksScreenActions(
     val loadToolDetails: suspend (Session, String, String?) -> ToolDetailPage = { _, _, _ -> error("Tool details unavailable") },
     // 追加在末尾并带默认值，避免破坏既有位置参数构造（测试等）
     val openSettings: () -> Unit = {},
+    /** 打开搜索（标题/路径/已加载内容）。 */
+    val openSearch: () -> Unit = {},
+    /** 从当前工作区新建会话。 */
+    val newSession: () -> Unit = {},
 )
 
 @Composable
@@ -107,7 +116,19 @@ internal fun TasksScreen(
     val hostFilter = requestedHostId?.takeIf { it in hosts }
     val visibleState = remember(state.sessions, hostFilter) { state.sessions.forHostFilter(hostFilter) }
     val visibleHosts = visibleState.hosts
-    val sessions = remember(visibleHosts) { sessionsForHostFilter(visibleHosts, null) }
+    // 会话搜索：按标题/路径/当前活动过滤（列表与 pager 共用同一过滤结果）。
+    var searchActive by rememberSaveable { mutableStateOf(false) }
+    var searchQuery by rememberSaveable { mutableStateOf("") }
+    val sessions = remember(visibleHosts, searchQuery, searchActive) {
+        val base = sessionsForHostFilter(visibleHosts, null)
+        val q = searchQuery.trim()
+        if (!searchActive || q.isEmpty()) base
+        else base.filter { s ->
+            s.title.contains(q, ignoreCase = true) ||
+                s.cwd.contains(q, ignoreCase = true) ||
+                s.activity.contains(q, ignoreCase = true)
+        }
+    }
     val initialPage = sessions.indexOfFirst { SessionKey(it.hostId, it.id) == selectedSession }.coerceAtLeast(0)
     val pagerState = rememberPagerState(initialPage = initialPage, pageCount = { sessions.size })
     val listedSessionKeys = remember(hosts) {
@@ -162,7 +183,9 @@ internal fun TasksScreen(
         }.collect { key -> key?.let(onSessionSelected) }
     }
 
+    val immersive = AppImmersive.active
     Column(Modifier.fillMaxSize()) {
+        if (!immersive) {
         TasksTopBar(
             hosts = hosts,
             selectedHostId = hostFilter,
@@ -174,9 +197,18 @@ internal fun TasksScreen(
             showWorkspaces = hosts.isNotEmpty(),
             openResources = openResources,
             openSettings = actions.openSettings,
+            openSearch = { searchActive = !searchActive; if (!searchActive) searchQuery = "" },
+            newSession = actions.newSession,
             checkForUpdates = actions.checkForUpdates,
             showVersion = actions.showVersion,
         )
+        if (searchActive) {
+            SessionSearchBar(
+                query = searchQuery,
+                onQueryChange = { searchQuery = it },
+                onClose = { searchActive = false; searchQuery = "" },
+            )
+        }
         TasksPagerBar(
             hosts = visibleHosts,
             sessions = sessions,
@@ -190,6 +222,7 @@ internal fun TasksScreen(
             },
             hasMore = visibleHosts.values.any { it.nextSessionsCursor != null },
         )
+        }
         if (sessions.isEmpty()) {
             Box(Modifier.weight(1f)) {
                 when (visibleState.emptyState) {
@@ -416,6 +449,52 @@ private fun PairingStepRow(number: Int, step: PairingStep) {
 }
 
 @Composable
+private fun SessionSearchBar(
+    query: String,
+    onQueryChange: (String) -> Unit,
+    onClose: () -> Unit,
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .padding(horizontal = 12.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Outlined.Search, contentDescription = null, tint = TextMid, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(8.dp))
+        BasicTextField(
+            value = query,
+            onValueChange = { onQueryChange(it.replace("\n", "")) },
+            modifier = Modifier.weight(1f).testTag("sessionSearchInput"),
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(color = TextHigh),
+            cursorBrush = SolidColor(Purple400),
+            decorationBox = { inner ->
+                Box(Modifier.fillMaxWidth()) {
+                    if (query.isEmpty()) {
+                        Text(
+                            T("搜索会话（标题 / 路径 / 活动）", "Search sessions (title / path / activity)"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = TextMid,
+                        )
+                    }
+                    inner()
+                }
+            },
+        )
+        if (query.isNotEmpty()) {
+            IconButton(onClick = rememberHapticOnClick { onQueryChange("") }, modifier = Modifier.size(36.dp)) {
+                Icon(Icons.Outlined.Close, contentDescription = T("清空", "Clear"), tint = TextMid, modifier = Modifier.size(18.dp))
+            }
+        }
+        IconButton(onClick = rememberHapticOnClick(onClose), modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Outlined.Close, contentDescription = T("关闭搜索", "Close search"), tint = TextMid, modifier = Modifier.size(18.dp))
+        }
+    }
+}
+
+@Composable
 private fun TasksTopBar(
     hosts: Map<String, HostState>,
     selectedHostId: String?,
@@ -423,6 +502,8 @@ private fun TasksTopBar(
     showWorkspaces: Boolean,
     openResources: () -> Unit,
     openSettings: () -> Unit,
+    openSearch: () -> Unit,
+    newSession: () -> Unit,
     checkForUpdates: () -> Unit,
     showVersion: () -> Unit,
 ) {
@@ -440,6 +521,10 @@ private fun TasksTopBar(
         } else {
             Spacer(Modifier.weight(1f))
         }
+        // 搜索会话
+        TopBarAction(Icons.Outlined.Search, T("搜索", "Search"), openSearch)
+        // 从当前工作区新建会话
+        TopBarAction(Icons.Outlined.Add, T("新建会话", "New session"), newSession)
         if (showWorkspaces) {
             TopBarAction(Icons.Outlined.FolderOpen, T("工作区", "Workspaces"), openResources)
         }

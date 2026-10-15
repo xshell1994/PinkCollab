@@ -65,6 +65,38 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
         if (startupReady && prefs.autoCheckUpdates) vm.checkForUpdates(manual = false)
     }
 
+    // 完成通知：会话由「运行中」变为「空闲/需输入」时，若用户不在该会话前台，发通知。
+    val latestRoute by rememberUpdatedState(route)
+    val latestSelected by rememberUpdatedState(selectedSession)
+    LaunchedEffect(vm, context, lifecycleOwner) {
+        val seenActive = mutableSetOf<SessionKey>()
+        vm.sessionListState.collect { list ->
+            val foreground = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            list.hosts.forEach { (hostId, host) ->
+                host.sessions.forEach { session ->
+                    val key = SessionKey(hostId, session.id)
+                    val active = session.status == SessionStatus.Running || session.status == SessionStatus.Starting
+                    val finished = session.status == SessionStatus.Idle || session.status == SessionStatus.NeedsInput
+                    val watchingThis = foreground && latestRoute == AppRoute.Tasks && latestSelected == key
+                    if (active) {
+                        seenActive.add(key)
+                    } else if (finished && key in seenActive) {
+                        seenActive.remove(key)
+                        if (!watchingThis) {
+                            CompletionNotifier.notify(
+                                context,
+                                session.title.ifBlank { T("会话完成", "Session finished") },
+                                if (session.status == SessionStatus.NeedsInput)
+                                    T("需要你的输入", "Needs your input")
+                                else T("已完成", "Finished"),
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     LaunchedEffect(vm) {
         vm.effects.collect { effect ->
             when (effect) {
@@ -148,6 +180,7 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
                                 selectSession = { selectedSession = it },
                                 openResources = { route = AppRoute.Resources },
                                 openSettings = { route = AppRoute.Settings },
+                                newSession = { route = AppRoute.Resources },
                                 connectHost = { pairHost = PairHostSheetState(visible = true) },
                                 checkForUpdates = { vm.checkForUpdates(manual = true) },
                                 showVersion = {

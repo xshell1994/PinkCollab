@@ -21,6 +21,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Close
@@ -204,12 +207,30 @@ internal fun SessionPage(
         if (lastItemIndex >= 0) timelineState.scrollToItem(lastItemIndex)
     }
     val density = LocalDensity.current
-    // 沉浸模式：滑动消息区时隐藏其它 UI，只留消息区；右下角"输入"按钮恢复。
+    // 回复完成：streaming 由非空转空 → 细微震动（Grok 风格），仅当前活跃页触发。
+    val contextForHaptic = LocalContext.current
+    var wasStreaming by remember { mutableStateOf(false) }
+    LaunchedEffect(detail.streaming.isNotBlank()) {
+        val streaming = detail.streaming.isNotBlank()
+        if (wasStreaming && !streaming && isActive) {
+            performCompletionHaptic(contextForHaptic)
+        }
+        wasStreaming = streaming
+    }
+    // 沉浸模式：滑动消息区时隐藏顶栏/输入框等，全屏只显示消息区（状态栏不隐藏）。
     var immersive by remember { mutableStateOf(false) }
     LaunchedEffect(timelineState) {
         snapshotFlow { timelineState.isScrollInProgress }.collect { scrolling ->
             if (scrolling) immersive = true
         }
+    }
+    // 同步到全局，供 TasksScreen 隐藏顶栏（仅当前活跃页写入，避免多页互相覆盖）。
+    androidx.compose.runtime.SideEffect {
+        if (isActive) AppImmersive.active = immersive
+    }
+    // 页面失活/销毁时复位，避免顶栏一直隐藏。
+    androidx.compose.runtime.DisposableEffect(isActive) {
+        onDispose { AppImmersive.active = false }
     }
     val composerClearance = if (composerHidden || immersive) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
     val imeInsets = WindowInsets.ime
@@ -428,6 +449,14 @@ internal fun SessionPage(
                             ),
                             cursorBrush = SolidColor(Purple400),
                             maxLines = composerMaxLines,
+                            // 输入法回车键 = 发送（Inbox 保持换行需 Shift+Enter，移动端用发送更顺手）。
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                            keyboardActions = KeyboardActions(onSend = {
+                                if (inputEnabled && controls.canSend) {
+                                    fileError = null
+                                    onPrompt()
+                                }
+                            }),
                             decorationBox = { innerTextField ->
                                 Box(Modifier.fillMaxWidth()) {
                                     if (prompt.isEmpty()) {
