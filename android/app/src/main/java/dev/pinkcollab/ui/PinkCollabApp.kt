@@ -23,6 +23,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.pinkcollab.BuildConfig
 import dev.pinkcollab.ui.theme.Base0
 import dev.pinkcollab.ui.theme.PinkCollabTheme
+import dev.pinkcollab.ui.theme.accentScheme
 import dev.pinkcollab.ui.theme.rememberHapticOnClick
 
 @Composable

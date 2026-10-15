@@ -95,6 +95,10 @@ android {
 }
 dependencies {
     implementation(platform("androidx.compose:compose-bom:2025.05.01"))
+    // 全局排除 annotations-java5：prism4j 传递引入它，与 Compose 的 org.jetbrains:annotations 重复
+    configurations.configureEach {
+        exclude(group = "org.jetbrains", module = "annotations-java5")
+    }
     implementation("androidx.activity:activity-compose:1.11.0")
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.material:material-icons-extended")
