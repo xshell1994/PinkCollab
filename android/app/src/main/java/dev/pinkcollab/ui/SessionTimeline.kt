@@ -178,10 +178,6 @@ private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkd
         Modifier.timelineBand(tint = Teal300, tintAlpha = 0.026f)
     }
     val contentColor = if (isUser) colors.onPrimaryContainer else TextHigh
-    // 长消息折叠：超过一定字符数默认收起，可展开。
-    val collapsible = !isUser && item.text.length > 1200
-    var expanded by rememberSaveable(item.id) { mutableStateOf(false) }
-    val collapsed = collapsible && !expanded
     Column(
         Modifier
             .fillMaxWidth()
@@ -197,9 +193,7 @@ private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkd
             if (isUser) {
                 Text(item.text, style = MaterialTheme.typography.bodyMedium, color = contentColor)
             } else {
-                Box(Modifier.then(if (collapsed) Modifier.heightIn(max = 320.dp) else Modifier)) {
-                    MarkdownBody(item.id, item.text, color = contentColor, renderer, onCopy)
-                }
+                MarkdownBody(item.id, item.text, color = contentColor, renderer, onCopy)
             }
         }
         Row(
@@ -207,16 +201,6 @@ private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkd
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            if (collapsible) {
-                Text(
-                    if (expanded) T("收起", "Show less") else T("展开全文", "Show more"),
-                    modifier = Modifier
-                        .clickable { expanded = !expanded }
-                        .padding(vertical = 4.dp),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary,
-                )
-            }
             // 复制整条消息（含代码块）——长按亦可复制，这里给出更直观的入口。
             val copyContext = LocalContext.current
             Text(
