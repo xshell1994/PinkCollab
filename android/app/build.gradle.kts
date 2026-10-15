@@ -59,8 +59,9 @@ android {
         minSdk = 26
         targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        versionCode = 3002002
-        versionName = "3.2.2"
+        // 版本号需递增（更新检查靠 versionCode 比较）。标签须为规范 vX.Y.Z。
+        versionCode = 3002003
+        versionName = "3.2.3"
     }
     testBuildType = providers.gradleProperty("testBuildType").getOrElse("debug")
     signingConfigs {

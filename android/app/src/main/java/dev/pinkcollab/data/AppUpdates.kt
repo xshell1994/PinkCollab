@@ -46,7 +46,7 @@ internal fun parseAppRelease(json: String): AppRelease? = runCatching {
     val assets = release.optJSONArray("assets")
     val apkUrl = (0 until (assets?.length() ?: 0)).asSequence()
         .mapNotNull { assets?.optJSONObject(it) }
-        .filter { it.optString("name") == "pinkcollab-android.apk" }
+        .filter { it.optString("name") == "pinkcollab-xin.apk" || it.optString("name") == "pinkcollab-android.apk" }
         .mapNotNull { httpsUrl(it.optString("browser_download_url")) }
         .firstOrNull()
     AppRelease(
@@ -76,7 +76,7 @@ internal class AppUpdateChecker(context: Context) {
 
     suspend fun fetchLatest(): AppRelease = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("https://api.github.com/repos/3xian/PinkCollab/releases/latest")
+            .url("https://api.github.com/repos/xshell1994/PinkCollab/releases/latest")
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", "PinkCollab-Android/${BuildConfig.VERSION_NAME}")
             .build()

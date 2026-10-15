@@ -2,6 +2,7 @@ package dev.pinkcollab.data
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -102,6 +103,7 @@ internal class HostConnectionSupervisor(
         private val connectionGeneration = AtomicLong()
         private var job: Job? = null
         private var socket: WebSocket? = null
+        @Volatile private var backoffAttempt = 0
 
         fun subscribe(sessionId: String, fresh: Boolean = false) {
             val cached = cachedSession(paired.host.id, sessionId)
@@ -117,20 +119,48 @@ internal class HostConnectionSupervisor(
 
         fun start() {
             val currentGeneration = connectionGeneration.incrementAndGet()
+            resetBackoff(currentGeneration)
             job?.cancel()
             job = scope.launch {
                 if (!isActive || !isCurrent(currentGeneration)) return@launch
                 emitState(currentGeneration, ConnectionState.Connecting)
-                val disconnect = awaitSocket(currentGeneration)
-                if (!isCurrent(currentGeneration)) return@launch
-                when {
-                    disconnect.authenticationRequired ->
-                        emitState(currentGeneration, ConnectionState.AuthenticationRequired)
-                    disconnect.upgradeRequired ->
-                        emitState(currentGeneration, ConnectionState.UpgradeRequired)
-                    else -> emitState(currentGeneration, disconnect.failure)
+                while (isActive && isCurrent(currentGeneration)) {
+                    val disconnect = awaitSocket(currentGeneration)
+                    if (!isCurrent(currentGeneration)) return@launch
+                    when {
+                        disconnect.authenticationRequired -> {
+                            emitState(currentGeneration, ConnectionState.AuthenticationRequired)
+                            return@launch
+                        }
+                        disconnect.upgradeRequired -> {
+                            emitState(currentGeneration, ConnectionState.UpgradeRequired)
+                            return@launch
+                        }
+                        else -> {
+                            emitState(currentGeneration, disconnect.failure)
+                            // 自动重连：指数退避（1s→2s→4s…最多 MaxBackoffMillis），保证不长期 offline。
+                            val wait = nextBackoffMillis(currentGeneration)
+                            delay(wait)
+                            if (!isCurrent(currentGeneration)) return@launch
+                            emitState(currentGeneration, ConnectionState.Connecting)
+                        }
+                    }
                 }
             }
+        }
+
+        /**
+         * 重连退避：首次 1s，逐次翻倍，最大 [MaxBackoffMillis]。
+         * 成功连上（onOpen）后由 [resetBackoff] 归零，下次断开从 1s 重新开始。
+         */
+        private fun nextBackoffMillis(generation: Long): Long {
+            val attempt = backoffAttempt
+            backoffAttempt = (attempt + 1).coerceAtMost(20)
+            return (InitialBackoffMillis shl attempt.coerceAtMost(10)).coerceAtMost(MaxBackoffMillis)
+        }
+
+        private fun resetBackoff(generation: Long) {
+            backoffAttempt = 0
         }
 
         fun stop() {
@@ -198,6 +228,7 @@ internal class HostConnectionSupervisor(
                                 return
                             }
                             gzipNegotiated = response.header("Sec-WebSocket-Protocol") == GzipSocketProtocol
+                            resetBackoff(generation)
                             emitState(generation, ConnectionState.Synchronizing)
                             synchronized(lock) {
                                 socket = webSocket
@@ -272,4 +303,8 @@ internal fun connectionFailure(error: Throwable, httpCode: Int? = null): Connect
     error is SSLException -> ConnectionState.Offline("Secure connection failed", ConnectionFailure.SecureConnectionFailed)
     else -> ConnectionState.Offline("Connection interrupted")
 }
+
+/** 自动重连退避参数：首次 1s，逐次翻倍，上限 30s（保证长期 offline 时也能自动恢复）。 */
+private const val InitialBackoffMillis = 1_000L
+private const val MaxBackoffMillis = 30_000L
 
