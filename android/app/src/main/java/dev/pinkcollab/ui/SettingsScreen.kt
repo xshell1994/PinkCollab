@@ -66,6 +66,14 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 display = "${prefs.codeFontSize.toInt()} sp",
                 onChange = { prefs.setCodeFontSize(it) },
             )
+            Spacer(Modifier.height(12.dp))
+            // 消息密度
+            SettingsSwitch(
+                label = "紧凑消息密度",
+                description = "减小消息间距，同屏显示更多内容",
+                checked = prefs.compactDensity,
+                onCheckedChange = { prefs.setCompactDensity(it) },
+            )
         }
 
         SettingsSection("输入") {
@@ -74,6 +82,24 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 description = "隐藏底部输入框，需要时用顶栏按钮唤出",
                 checked = prefs.composerHidden,
                 onCheckedChange = { prefs.setComposerHidden(it) },
+            )
+            Spacer(Modifier.height(12.dp))
+            SettingsSlider(
+                label = "输入框最大行数",
+                value = prefs.composerMaxLines.toFloat(),
+                valueRange = AppPreferences.MinComposerLines.toFloat()..AppPreferences.MaxComposerLines.toFloat(),
+                steps = AppPreferences.MaxComposerLines - AppPreferences.MinComposerLines - 1,
+                display = "${prefs.composerMaxLines} 行",
+                onChange = { prefs.setComposerMaxLines(it.toInt()) },
+            )
+        }
+
+        SettingsSection("行为") {
+            SettingsSwitch(
+                label = "启动时自动检查更新",
+                description = "关闭后仅在手动点击时检查",
+                checked = prefs.autoCheckUpdates,
+                onCheckedChange = { prefs.setAutoCheckUpdates(it) },
             )
         }
 

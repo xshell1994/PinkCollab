@@ -254,6 +254,8 @@ internal fun TasksScreen(
                         composerHidden = prefs?.composerHidden == true,
                         messageFontSize = prefs?.messageFontSize ?: 12f,
                         codeFontSize = prefs?.codeFontSize ?: 12f,
+                        compactDensity = prefs?.compactDensity == true,
+                        composerMaxLines = prefs?.composerMaxLines ?: 5,
                         onShowComposer = { prefs?.setComposerHidden(false) },
                         loadToolDetails = { callId, cursor -> actions.loadToolDetails(session, callId, cursor) },
                     )

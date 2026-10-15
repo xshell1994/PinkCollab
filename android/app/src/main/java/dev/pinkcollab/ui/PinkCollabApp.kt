@@ -56,7 +56,7 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
         }
     }
     LaunchedEffect(startupReady, vm) {
-        if (startupReady) vm.checkForUpdates(manual = false)
+        if (startupReady && prefs.autoCheckUpdates) vm.checkForUpdates(manual = false)
     }
 
     LaunchedEffect(vm) {

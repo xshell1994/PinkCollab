@@ -65,6 +65,8 @@ internal fun SessionPage(
     composerHidden: Boolean = false,
     messageFontSize: Float = 12f,
     codeFontSize: Float = 12f,
+    compactDensity: Boolean = false,
+    composerMaxLines: Int = 5,
     onShowComposer: () -> Unit = {},
     loadToolDetails: suspend (String, String?) -> ToolDetailPage = { _, _ -> error("Tool details unavailable") },
 ) {
@@ -262,7 +264,7 @@ internal fun SessionPage(
                         // Keeps the last timeline item clear of the floating composer card.
                         bottom = composerClearance,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (compactDensity) 0.dp else 2.dp),
                 ) {
                     items(conversationDisplay, key = { it.id }, contentType = { it::class }) { item ->
                         val running = item is SessionDisplayItem.ActivityGroup && item.operations.any { it.callId in liveOperationIds }
@@ -415,7 +417,7 @@ internal fun SessionPage(
                                 color = if (inputEnabled) TextHigh else Gray400.copy(alpha = 0.65f),
                             ),
                             cursorBrush = SolidColor(Purple400),
-                            maxLines = 5,
+                            maxLines = composerMaxLines,
                             decorationBox = { innerTextField ->
                                 Box(Modifier.fillMaxWidth()) {
                                     if (prompt.isEmpty()) {

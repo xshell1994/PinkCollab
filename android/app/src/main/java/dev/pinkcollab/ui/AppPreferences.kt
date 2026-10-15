@@ -31,6 +31,18 @@ internal class AppPreferences(context: Context) {
     var accentThemeKey by mutableStateOf(prefs.getString("accent-theme", AccentTheme.Purple.key) ?: AccentTheme.Purple.key)
         private set
 
+    /** 消息列表密度：紧凑 / 舒适。 */
+    var compactDensity by mutableStateOf(prefs.getBoolean("compact-density", false))
+        private set
+
+    /** 输入框最大行数，3~10。 */
+    var composerMaxLines by mutableStateOf(prefs.getInt("composer-max-lines", 5))
+        private set
+
+    /** 是否在启动时自动检查更新。 */
+    var autoCheckUpdates by mutableStateOf(prefs.getBoolean("auto-check-updates", true))
+        private set
+
     val accentTheme: AccentTheme get() = AccentTheme.fromKey(accentThemeKey)
 
     fun setMessageFontSize(value: Float) {
@@ -53,11 +65,28 @@ internal class AppPreferences(context: Context) {
         prefs.edit().putString("accent-theme", theme.key).apply()
     }
 
+    fun setCompactDensity(value: Boolean) {
+        compactDensity = value
+        prefs.edit().putBoolean("compact-density", value).apply()
+    }
+
+    fun setComposerMaxLines(value: Int) {
+        composerMaxLines = value.coerceIn(MinComposerLines, MaxComposerLines)
+        prefs.edit().putInt("composer-max-lines", composerMaxLines).apply()
+    }
+
+    fun setAutoCheckUpdates(value: Boolean) {
+        autoCheckUpdates = value
+        prefs.edit().putBoolean("auto-check-updates", value).apply()
+    }
+
     companion object {
         const val MinFontSize = 12f
         const val MaxFontSize = 20f
         const val MinCodeFontSize = 10f
         const val MaxCodeFontSize = 18f
+        const val MinComposerLines = 3
+        const val MaxComposerLines = 10
     }
 }
 
