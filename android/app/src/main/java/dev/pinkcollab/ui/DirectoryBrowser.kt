@@ -313,14 +313,14 @@ private fun DirectoryCreateBar(folder: String, creating: Boolean, onCreate: () -
             if (creating) {
                 OrbitDots(Modifier.size(18.dp), LocalContentColor.current)
                 Spacer(Modifier.width(8.dp))
-                Text("Creating session")
+                Text(T("正在创建会话", "Creating session"))
             } else {
                 Row(
                     Modifier.weight(1f),
                     horizontalArrangement = Arrangement.Center,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Text("Create session in", maxLines = 1)
+                    Text(T("在此新建会话", "Create session in"), maxLines = 1)
                     Spacer(Modifier.width(6.dp))
                     Icon(Icons.Outlined.Folder, null, Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))

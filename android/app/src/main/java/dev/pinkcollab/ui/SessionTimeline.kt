@@ -9,7 +9,11 @@ import android.text.style.ForegroundColorSpan
 import androidx.core.content.res.ResourcesCompat
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -39,6 +43,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.Role
@@ -143,6 +148,26 @@ internal fun DisplayItem(item: SessionDisplayItem, renderer: SessionMarkdownRend
     }
 }
 
+/** 流式输出尾部的闪烁光标。 */
+@Composable
+internal fun StreamingCursor() {
+    val transition = rememberInfiniteTransition(label = "streamCursor")
+    val alpha by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = 0f,
+        animationSpec = infiniteRepeatable(tween(600), RepeatMode.Reverse),
+        label = "streamCursorAlpha",
+    )
+    Box(
+        Modifier
+            .padding(start = 2.dp, bottom = 2.dp)
+            .width(2.dp)
+            .height(14.dp)
+            .graphicsLayer { this.alpha = alpha }
+            .background(MaterialTheme.colorScheme.primary),
+    )
+}
+
 @Composable
 private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkdownRenderer) {
     val isUser = item.role == "user"
@@ -177,12 +202,31 @@ private fun MessageCard(item: SessionDisplayItem.Message, renderer: SessionMarkd
                 }
             }
         }
-        if (collapsible) {
+        Row(
+            Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            if (collapsible) {
+                Text(
+                    if (expanded) T("收起", "Show less") else T("展开全文", "Show more"),
+                    modifier = Modifier
+                        .clickable { expanded = !expanded }
+                        .padding(vertical = 4.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
+            // 复制整条消息（含代码块）——长按亦可复制，这里给出更直观的入口。
+            val copyContext = LocalContext.current
             Text(
-                if (expanded) T("收起", "Show less") else T("展开全文", "Show more"),
+                T("复制", "Copy"),
                 modifier = Modifier
-                    .align(Alignment.Start)
-                    .clickable { expanded = !expanded }
+                    .clickable {
+                        copyContext.getSystemService(android.content.ClipboardManager::class.java)
+                            .setPrimaryClip(android.content.ClipData.newPlainText("Message", item.text))
+                        android.widget.Toast.makeText(copyContext, T("已复制", "Copied"), android.widget.Toast.LENGTH_SHORT).show()
+                    }
                     .padding(vertical = 4.dp),
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.primary,

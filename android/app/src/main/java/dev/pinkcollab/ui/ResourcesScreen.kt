@@ -51,7 +51,7 @@ internal fun ResourcesScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                "No workspaces yet",
+                T("还没有工作区", "No workspaces yet"),
                 modifier = Modifier.fillMaxWidth(),
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.SemiBold,
@@ -59,14 +59,14 @@ internal fun ResourcesScreen(
             )
             Spacer(Modifier.height(8.dp))
             Text(
-                "Connect a host to see the project directories it allows.",
+                T("连接一台主机，查看它允许的项目目录。", "Connect a host to see the project directories it allows."),
                 modifier = Modifier.fillMaxWidth(),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(24.dp))
-            PrimaryButton(onClick = pair) { Text("Connect host") }
+            PrimaryButton(onClick = pair) { Text(T("连接主机", "Connect host")) }
         }
         return
     }
@@ -82,11 +82,11 @@ internal fun ResourcesScreen(
             val connectionPending = host.connection == ConnectionState.Connecting ||
                 host.connection == ConnectionState.Synchronizing
             val (connectionLabel, connectionColor) = when (host.connection) {
-                ConnectionState.Connecting, ConnectionState.Synchronizing -> "Connecting" to BrandPink
-                is ConnectionState.Online -> "$activeTasks active" to Teal300
-                is ConnectionState.Offline -> "Offline" to Gray400
-                ConnectionState.AuthenticationRequired -> "Reconnect required" to Red400
-                ConnectionState.UpgradeRequired -> "App update required" to Red400
+                ConnectionState.Connecting, ConnectionState.Synchronizing -> T("连接中", "Connecting") to BrandPink
+                is ConnectionState.Online -> T("$activeTasks 个进行中", "$activeTasks active") to Teal300
+                is ConnectionState.Offline -> T("离线", "Offline") to Gray400
+                ConnectionState.AuthenticationRequired -> T("需要重新连接", "Reconnect required") to Red400
+                ConnectionState.UpgradeRequired -> T("需要更新应用", "App update required") to Red400
             }
             Card(
                 Modifier.fillMaxWidth().glassPanel(CardShape, borderAlpha = 0f).clip(CardShape).workspaceBackdrop(host.host.os),
@@ -124,14 +124,14 @@ internal fun ResourcesScreen(
                             }
                             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
                                 DropdownMenuItem(
-                                    text = { Text("Rename") },
+                                    text = { Text(T("重命名", "Rename")) },
                                     onClick = rememberHapticOnClick {
                                         menuOpen = false
                                         renaming = host
                                     },
                                 )
                                 DropdownMenuItem(
-                                    text = { Text("Remove") },
+                                    text = { Text(T("移除", "Remove")) },
                                     onClick = rememberHapticOnClick {
                                         menuOpen = false
                                         hostPendingRemoval = host
@@ -198,7 +198,7 @@ internal fun ResourcesScreen(
                 OutlinedButton(onClick = rememberHapticOnClick(pair)) {
                     Icon(Icons.Outlined.AddLink, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Connect another host")
+                    Text(T("连接另一台主机", "Connect another host"))
                 }
             }
         }
@@ -207,8 +207,8 @@ internal fun ResourcesScreen(
         AlertDialog(
             onDismissRequest = { hostPendingRemoval = null },
             icon = { Icon(Icons.Outlined.DeleteOutline, null, tint = Red400) },
-            title = { Text("Remove host?") },
-            text = { Text("This removes “${host.displayName}” and its saved connection from this phone. The host itself will not be changed.") },
+            title = { Text(T("移除主机？", "Remove host?")) },
+            text = { Text(T("这会移除“${host.displayName}”及其在本机保存的连接。主机本身不会被改动。", "This removes “${host.displayName}” and its saved connection from this phone. The host itself will not be changed.")) },
             confirmButton = {
                 TextButton(
                     onClick = rememberHapticOnClick {
@@ -217,28 +217,28 @@ internal fun ResourcesScreen(
                     },
                     colors = ButtonDefaults.textButtonColors(contentColor = Red400),
                 ) {
-                    Text("Remove")
+                    Text(T("移除", "Remove"))
                 }
             },
-            dismissButton = { TextButton(onClick = rememberHapticOnClick { hostPendingRemoval = null }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = rememberHapticOnClick { hostPendingRemoval = null }) { Text(T("取消", "Cancel")) } },
         )
     }
     renaming?.let { host ->
         var draft by remember(host.host.id) { mutableStateOf(host.displayName) }
         AlertDialog(
             onDismissRequest = { renaming = null },
-            title = { Text("Rename host") },
+            title = { Text(T("重命名主机", "Rename host")) },
             text = {
                 Column {
                     OutlinedTextField(
                         value = draft,
                         onValueChange = { draft = it.replace("\n", "") },
                         singleLine = true,
-                        label = { Text("Name") },
+                        label = { Text(T("名称", "Name")) },
                     )
                     if (host.host.name != host.displayName) {
                         TextButton(onClick = rememberHapticOnClick { draft = host.host.name }) {
-                            Text("Use Gateway name “${host.host.name}”", maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Text(T("使用网关名称“${host.host.name}”", "Use Gateway name “${host.host.name}”"), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         }
                     }
                 }
@@ -250,10 +250,10 @@ internal fun ResourcesScreen(
                         renaming = null
                     },
                     enabled = draft.trim().isNotEmpty(),
-                ) { Text("Save") }
+                ) { Text(T("保存", "Save")) }
             },
             dismissButton = {
-                TextButton(onClick = rememberHapticOnClick { renaming = null }) { Text("Cancel") }
+                TextButton(onClick = rememberHapticOnClick { renaming = null }) { Text(T("取消", "Cancel")) }
             },
         )
     }
