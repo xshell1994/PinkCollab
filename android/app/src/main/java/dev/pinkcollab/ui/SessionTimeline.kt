@@ -60,6 +60,7 @@ import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.ext.tables.TablePlugin
 import io.noties.markwon.html.HtmlPlugin
+import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
 import org.commonmark.node.Code
 import org.commonmark.node.StrongEmphasis
@@ -303,8 +304,9 @@ internal fun createSessionMarkwon(context: Context, codeFontSizeSp: Float = 12f)
         .usePlugin(LinkifyPlugin.create())
         // 内联 HTML（<br> <sub> 等）
         .usePlugin(HtmlPlugin.create())
-        // 注意：图片（image-coil 依赖老版 Coil，运行时缺 coil.Coil 会 NoClassDefFoundError）
-        // 与代码语法高亮（Prism4j）已移除以确保稳定；如需再加，需改用兼容版本的依赖。
+        // 图片（markwon:image 默认加载器基于 OkHttp，无需 Coil）
+        .usePlugin(ImagesPlugin.create())
+        // 注意：代码语法高亮（Prism4j 老库）已移除以确保稳定；如需再加需评估。
         .usePlugin(object : AbstractMarkwonPlugin() {
             override fun configureTheme(builder: MarkwonTheme.Builder) {
                 val maple = ResourcesCompat.getFont(context, dev.pinkcollab.R.font.maple_mono_cn_regular) ?: Typeface.DEFAULT

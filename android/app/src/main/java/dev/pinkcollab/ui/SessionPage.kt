@@ -70,6 +70,7 @@ internal fun SessionPage(
     codeFontSize: Float = 12f,
     compactDensity: Boolean = false,
     composerMaxLines: Int = 5,
+    immersiveButtonLeft: Boolean = false,
     onShowComposer: () -> Unit = {},
     loadToolDetails: suspend (String, String?) -> ToolDetailPage = { _, _ -> error("Tool details unavailable") },
 ) {
@@ -363,9 +364,13 @@ internal fun SessionPage(
                     if (composerHidden) onShowComposer()
                 },
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
+                    .align(if (immersiveButtonLeft) Alignment.BottomStart else Alignment.BottomEnd)
                     .then(keyboardOffset)
-                    .padding(end = 16.dp, bottom = 20.dp)
+                    .padding(
+                        start = if (immersiveButtonLeft) 16.dp else 0.dp,
+                        end = if (immersiveButtonLeft) 0.dp else 16.dp,
+                        bottom = 20.dp,
+                    )
                     .testTag("showComposerButton"),
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surfaceContainerHigh,

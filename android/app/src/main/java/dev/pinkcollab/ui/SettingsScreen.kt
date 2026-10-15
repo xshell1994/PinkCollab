@@ -105,6 +105,13 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 onCheckedChange = { prefs.applyComposerHidden(it) },
             )
             Spacer(Modifier.height(12.dp))
+            SettingsSwitch(
+                label = T("沉浸浮标放左侧", "Immersive button on left"),
+                description = T("沉浸模式下\"输入\"按钮显示在左下角", "Show the immersive Input button at the bottom-left"),
+                checked = prefs.immersiveButtonLeft,
+                onCheckedChange = { prefs.applyImmersiveButtonLeft(it) },
+            )
+            Spacer(Modifier.height(12.dp))
             SettingsSlider(
                 label = T("输入框最大行数", "Composer max lines"),
                 value = prefs.composerMaxLines.toFloat(),

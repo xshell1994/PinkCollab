@@ -290,6 +290,7 @@ internal fun TasksScreen(
                         codeFontSize = prefs?.codeFontSize ?: 12f,
                         compactDensity = prefs?.compactDensity == true,
                         composerMaxLines = prefs?.composerMaxLines ?: 5,
+                        immersiveButtonLeft = prefs?.immersiveButtonLeft == true,
                         onShowComposer = { prefs?.applyComposerHidden(false) },
                         loadToolDetails = { callId, cursor -> actions.loadToolDetails(session, callId, cursor) },
                     )

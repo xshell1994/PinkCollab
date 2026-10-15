@@ -60,8 +60,8 @@ android {
         targetSdk = 36
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // 版本号需递增（更新检查靠 versionCode 比较）。标签须为规范 vX.Y.Z。
-        versionCode = 3002007
-        versionName = "3.2.7"
+        versionCode = 3002008
+        versionName = "3.2.8"
     }
     testBuildType = providers.gradleProperty("testBuildType").getOrElse("debug")
     signingConfigs {
@@ -120,9 +120,8 @@ dependencies {
     implementation("io.noties.markwon:ext-tasklist:4.6.2")
     implementation("io.noties.markwon:linkify:4.6.2")
     implementation("io.noties.markwon:html:4.6.2")
-    // 图片渲染（自带 Coil，AI 常输出图片 URL）
-    // ⚠️ image-coil 依赖老版 Coil，运行时缺 coil.Coil 会 NoClassDefFoundError，暂不启用
-    // implementation("io.noties.markwon:image-coil:4.6.2")
+    // 图片渲染（markwon:image，自带 OkHttp 加载，不依赖 Coil，避开版本坑）
+    implementation("io.noties.markwon:image:4.6.2")
     // 代码语法高亮（Prism4j 老库 + kapt），暂不启用以确保稳定
     // implementation("io.noties.markwon:syntax-highlight:4.6.2")
     // implementation("io.noties:prism4j:2.0.0")

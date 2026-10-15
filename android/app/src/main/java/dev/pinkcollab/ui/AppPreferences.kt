@@ -51,6 +51,10 @@ internal class AppPreferences(context: Context) {
     var chinese by mutableStateOf(prefs.getBoolean("chinese", true))
         private set
 
+    /** 沉浸模式下"输入"浮标位置：true=左侧，false=右侧。 */
+    var immersiveButtonLeft by mutableStateOf(prefs.getBoolean("immersive-button-left", false))
+        private set
+
     val accentTheme: AccentTheme get() = AccentTheme.fromKey(accentThemeKey)
 
     fun applyMessageFontSize(value: Float) {
@@ -96,6 +100,11 @@ internal class AppPreferences(context: Context) {
     fun applyChinese(value: Boolean) {
         chinese = value
         prefs.edit().putBoolean("chinese", value).apply()
+    }
+
+    fun applyImmersiveButtonLeft(value: Boolean) {
+        immersiveButtonLeft = value
+        prefs.edit().putBoolean("immersive-button-left", value).apply()
     }
 
     companion object {

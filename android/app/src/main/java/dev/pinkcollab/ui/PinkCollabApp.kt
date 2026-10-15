@@ -21,6 +21,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import dev.pinkcollab.BuildConfig
+import dev.pinkcollab.data.SessionKey
+import dev.pinkcollab.data.SessionStatus
 import dev.pinkcollab.ui.theme.AppAppearance
 import dev.pinkcollab.ui.theme.Base0
 import dev.pinkcollab.ui.theme.PinkCollabTheme

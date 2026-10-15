@@ -7,6 +7,9 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.io.IOException
 
+/** 单文件上限（100 MiB）。网关侧可能另有 body 限制，超限会在上传时报错。 */
+private const val MaxAttachmentBytes = 100L * 1024 * 1024
+
 /** Reads selected files and verifies the Gateway's upload acknowledgement. */
 internal class AttachmentUploader(
     private val api: GatewayTransport,
@@ -20,7 +23,9 @@ internal class AttachmentUploader(
                 while (true) {
                     val count = input.read(buffer)
                     if (count < 0) break
-                    if (output.size() + count > 10 * 1024 * 1024) throw IOException("File exceeds the 10 MiB limit")
+                    if (output.size() + count > MaxAttachmentBytes) {
+                        throw IOException("File exceeds the ${MaxAttachmentBytes / (1024 * 1024)} MiB limit")
+                    }
                     output.write(buffer, 0, count)
                 }
                 output.toByteArray()
