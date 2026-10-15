@@ -76,8 +76,10 @@ android {
     }
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // image-coil 依赖老版 coil-base:0.13.0，R8 压缩时报 Missing class coil.Coil，
+            // 故关闭 minify（APK 略大，但功能稳定）；保留资源压缩。
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfigs.findByName("release")?.let { signingConfig = it }
         }
