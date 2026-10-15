@@ -10,7 +10,10 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -41,6 +44,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -213,6 +217,13 @@ internal fun SessionPage(
     val density = LocalDensity.current
     // Plan 模式：切换后，下一条消息前缀 "/plan" 以进入 OMP 的只读规划模式（再次切换取消）。
     var planMode by rememberSaveable(session.id) { mutableStateOf(false) }
+    // 「我发的消息」在时间轴中的索引（用于右侧快速定位控件）。
+    val userMessageIndices = remember(conversationDisplay) {
+        conversationDisplay.withIndex()
+            .filter { (_, item) -> item is SessionDisplayItem.Message && item.role == "user" }
+            .map { it.index }
+    }
+    val navScope = rememberCoroutineScope()
     // 回复完成：streaming 由非空转空 → 细微震动（Grok 风格），仅当前活跃页触发。
     val contextForHaptic = LocalContext.current
     var wasStreaming by remember { mutableStateOf(false) }
@@ -373,6 +384,16 @@ internal fun SessionPage(
                         modifier = Modifier.align(Alignment.TopCenter)
                             .offset(y = todoClearance).testTag("historyPullIndicator"),
                         color = BrandPink,
+                    )
+                }
+                if (isActive && userMessageIndices.isNotEmpty() && !immersive) {
+                    UserMessageNavigator(
+                        userMessageIndices = userMessageIndices,
+                        timelineState = timelineState,
+                        onJump = { index -> navScope.launch { timelineState.animateScrollToItem(index) } },
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .padding(end = 4.dp, top = todoClearance + 12.dp, bottom = composerClearance + 12.dp),
                     )
                 }
             }
@@ -665,5 +686,90 @@ internal fun SessionPage(
                 onCommand(SessionUserCommand.Stop)
             },
         )
+    }
+}
+
+/**
+ * 右侧「跳到我发的消息」定位条。
+ *
+ * 在一条竖直轨道上按比例标出每条「我发送的消息」，顶部圆点随滚动联动高亮；
+ * 拖动或点击轨道即可平滑定位到最近的一条用户消息。
+ */
+@Composable
+private fun UserMessageNavigator(
+    userMessageIndices: List<Int>,
+    timelineState: androidx.compose.foundation.lazy.LazyListState,
+    onJump: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    if (userMessageIndices.isEmpty()) return
+    val accent = MaterialTheme.colorScheme.primary
+    val track = TextMid.copy(alpha = 0.30f)
+    // 当前可视首项对应的「我发的消息」序号（用于高亮）。
+    val activeOrdinal by remember(userMessageIndices) {
+        derivedStateOf {
+            val first = timelineState.firstVisibleItemIndex
+            var ordinal = 0
+            for (i in userMessageIndices.indices) {
+                if (userMessageIndices[i] <= first) ordinal = i else break
+            }
+            ordinal
+        }
+    }
+    val count = userMessageIndices.size
+    val lastIndex = userMessageIndices.last()
+    val firstIndex = userMessageIndices.first()
+    val span = (lastIndex - firstIndex).coerceAtLeast(1)
+
+    Box(
+        modifier
+            .width(26.dp)
+            .height(200.dp)
+            .pointerInput(userMessageIndices) {
+                fun jumpTo(y: Float) {
+                    val h = size.height.toFloat().coerceAtLeast(1f)
+                    val fraction = (y / h).coerceIn(0f, 1f)
+                    val target = firstIndex + (fraction * span).roundToInt()
+                    // 找最近的一条用户消息。
+                    val nearest = userMessageIndices.minByOrNull { kotlin.math.abs(it - target) }
+                    if (nearest != null) onJump(nearest)
+                }
+                detectTapGestures { offset -> jumpTo(offset.y) }
+            }
+            .pointerInput(userMessageIndices) {
+                detectDragGestures { change, _ ->
+                    val h = size.height.toFloat().coerceAtLeast(1f)
+                    val fraction = (change.position.y / h).coerceIn(0f, 1f)
+                    val target = firstIndex + (fraction * span).roundToInt()
+                    userMessageIndices.minByOrNull { kotlin.math.abs(it - target) }?.let(onJump)
+                    change.consume()
+                }
+            }
+            .testTag("userMessageNavigator"),
+    ) {
+        Canvas(
+            Modifier.fillMaxSize(),
+        ) {
+            val cx = size.width / 2f
+            val h = size.height
+            // 轨道
+            drawLine(
+                color = track,
+                start = androidx.compose.ui.geometry.Offset(cx, h * 0.05f),
+                end = androidx.compose.ui.geometry.Offset(cx, h * 0.95f),
+                strokeWidth = 2.dp.toPx(),
+            )
+            // 每条用户消息一个刻度点
+            userMessageIndices.forEachIndexed { ordinal, index ->
+                val fraction = (index - firstIndex).toFloat() / span
+                val y = h * 0.05f + fraction * h * 0.90f
+                val isActive = ordinal == activeOrdinal
+                drawCircle(
+                    color = if (isActive) accent else track,
+                    radius = (if (isActive) 4.5.dp else 2.5.dp).toPx(),
+                    center = androidx.compose.ui.geometry.Offset(cx, y),
+                )
+            }
+        }
     }
 }
