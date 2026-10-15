@@ -204,7 +204,14 @@ internal fun SessionPage(
         if (lastItemIndex >= 0) timelineState.scrollToItem(lastItemIndex)
     }
     val density = LocalDensity.current
-    val composerClearance = if (composerHidden) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
+    // 沉浸模式：滑动消息区时隐藏其它 UI，只留消息区；右下角"输入"按钮恢复。
+    var immersive by remember { mutableStateOf(false) }
+    LaunchedEffect(timelineState) {
+        snapshotFlow { timelineState.isScrollInProgress }.collect { scrolling ->
+            if (scrolling) immersive = true
+        }
+    }
+    val composerClearance = if (composerHidden || immersive) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
     val imeInsets = WindowInsets.ime
     val navigationInsets = WindowInsets.navigationBars
     // IME insets animate every frame. Moving the composer during placement keeps that
@@ -236,7 +243,7 @@ internal fun SessionPage(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val stackComposerControls = maxWidth < 360.dp * density.fontScale
         val todoHeaderHeight = todoPanelHeaderHeight()
-        val todoClearance = if (todo != null) todoHeaderHeight + 12.dp else 0.dp
+        val todoClearance = if (todo != null && !immersive) todoHeaderHeight + 12.dp else 0.dp
         val keyboardHeight = with(density) {
             (imeInsets.getBottom(this) - navigationInsets.getBottom(this)).coerceAtLeast(0).toDp()
         }
@@ -327,10 +334,13 @@ internal fun SessionPage(
             TimelineLoadingState(Modifier.padding(bottom = composerClearance)
                 .testTag(if (load == LoadState.Loading) "sessionLoading" else "historyLoading"))
         }
-        if (composerHidden) {
-            // 输入框已隐藏：底部只留一个轻量浮标，点击唤出。
+        if (composerHidden || immersive) {
+            // 输入框隐藏 / 沉浸模式：底部只留一个轻量浮标，点击唤出。
             Surface(
-                onClick = onShowComposer,
+                onClick = {
+                    immersive = false
+                    if (composerHidden) onShowComposer()
+                },
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .then(keyboardOffset)
@@ -351,7 +361,7 @@ internal fun SessionPage(
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.primary,
                     )
-                    Text("输入", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+                    Text(T("输入", "Input"), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
                 }
             }
         } else {
@@ -524,7 +534,7 @@ internal fun SessionPage(
             }
         }
         }
-        if (todo != null) {
+        if (todo != null && !immersive) {
             AnimatedVisibility(todoExpanded, modifier = Modifier.align(Alignment.TopCenter),
                 enter = fadeIn(), exit = fadeOut()) {
                 Box(Modifier.fillMaxWidth().height(panelMaxHeight).testTag("todoDismissArea")

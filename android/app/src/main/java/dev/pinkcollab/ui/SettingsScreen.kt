@@ -25,22 +25,38 @@ import dev.pinkcollab.ui.theme.*
  */
 @Composable
 internal fun SettingsScreen(prefs: AppPreferences) {
+    // 显式读取语言状态，保证切换语言时本页重组。
+    val lang = AppLanguage.zh
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
-        SettingsSection("外观") {
-            // 深色/浅色
+        SettingsSection(T("通用", "General")) {
             SettingsSwitch(
-                label = "深色模式",
-                description = "关闭则使用浅色主题",
+                label = T("中文界面", "Chinese UI"),
+                description = T("关闭则使用英文", "Turn off for English"),
+                checked = prefs.chinese,
+                onCheckedChange = { prefs.applyChinese(it) },
+            )
+            Spacer(Modifier.height(12.dp))
+            SettingsSwitch(
+                label = T("启动时自动检查更新", "Check updates on launch"),
+                description = T("关闭后仅在手动点击时检查", "Off: check only when tapped"),
+                checked = prefs.autoCheckUpdates,
+                onCheckedChange = { prefs.applyAutoCheckUpdates(it) },
+            )
+        }
+
+        SettingsSection(T("外观", "Appearance")) {
+            SettingsSwitch(
+                label = T("深色模式", "Dark mode"),
+                description = T("关闭则使用浅色主题", "Off uses the light theme"),
                 checked = prefs.darkTheme,
                 onCheckedChange = { prefs.applyDarkTheme(it) },
             )
             Spacer(Modifier.height(16.dp))
-            // 强调色
-            SettingsLabel("强调色")
+            SettingsLabel(T("强调色", "Accent"))
             Row(
                 Modifier.fillMaxWidth().padding(top = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -55,9 +71,8 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 }
             }
             Spacer(Modifier.height(16.dp))
-            // 消息字号
             SettingsSlider(
-                label = "消息字号",
+                label = T("消息字号", "Message size"),
                 value = prefs.messageFontSize,
                 valueRange = AppPreferences.MinFontSize..AppPreferences.MaxFontSize,
                 steps = (AppPreferences.MaxFontSize - AppPreferences.MinFontSize).toInt() - 1,
@@ -65,9 +80,8 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 onChange = { prefs.applyMessageFontSize(it) },
             )
             Spacer(Modifier.height(8.dp))
-            // 代码字号
             SettingsSlider(
-                label = "代码字号",
+                label = T("代码字号", "Code size"),
                 value = prefs.codeFontSize,
                 valueRange = AppPreferences.MinCodeFontSize..AppPreferences.MaxCodeFontSize,
                 steps = (AppPreferences.MaxCodeFontSize - AppPreferences.MinCodeFontSize).toInt() - 1,
@@ -75,45 +89,35 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 onChange = { prefs.applyCodeFontSize(it) },
             )
             Spacer(Modifier.height(12.dp))
-            // 消息密度
             SettingsSwitch(
-                label = "紧凑消息密度",
-                description = "减小消息间距，同屏显示更多内容",
+                label = T("紧凑消息密度", "Compact density"),
+                description = T("减小消息间距，同屏显示更多内容", "Tighter spacing, more on screen"),
                 checked = prefs.compactDensity,
                 onCheckedChange = { prefs.applyCompactDensity(it) },
             )
         }
 
-        SettingsSection("输入") {
+        SettingsSection(T("输入", "Input")) {
             SettingsSwitch(
-                label = "隐藏输入框",
-                description = "隐藏底部输入框，需要时用顶栏按钮唤出",
+                label = T("隐藏输入框", "Hide composer"),
+                description = T("隐藏底部输入框，需要时用右下角按钮唤出", "Tap the bottom-right button to bring it back"),
                 checked = prefs.composerHidden,
                 onCheckedChange = { prefs.applyComposerHidden(it) },
             )
             Spacer(Modifier.height(12.dp))
             SettingsSlider(
-                label = "输入框最大行数",
+                label = T("输入框最大行数", "Composer max lines"),
                 value = prefs.composerMaxLines.toFloat(),
                 valueRange = AppPreferences.MinComposerLines.toFloat()..AppPreferences.MaxComposerLines.toFloat(),
                 steps = AppPreferences.MaxComposerLines - AppPreferences.MinComposerLines - 1,
-                display = "${prefs.composerMaxLines} 行",
+                display = if (AppLanguage.zh) "${prefs.composerMaxLines} 行" else "${prefs.composerMaxLines} lines",
                 onChange = { prefs.applyComposerMaxLines(it.toInt()) },
-            )
-        }
-
-        SettingsSection("行为") {
-            SettingsSwitch(
-                label = "启动时自动检查更新",
-                description = "关闭后仅在手动点击时检查",
-                checked = prefs.autoCheckUpdates,
-                onCheckedChange = { prefs.applyAutoCheckUpdates(it) },
             )
         }
 
         Spacer(Modifier.height(8.dp))
         Text(
-            "设置即时生效并自动保存。",
+            T("设置即时生效并自动保存。", "Settings apply instantly and save automatically."),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -166,7 +170,7 @@ private fun AccentSwatch(
             if (selected) {
                 Icon(
                     Icons.Outlined.Check,
-                    contentDescription = "已选择",
+                    contentDescription = T("已选择", "Selected"),
                     tint = Color.White,
                     modifier = Modifier.size(22.dp),
                 )

@@ -44,8 +44,11 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val prefs = remember(context) { AppPreferences(context) }
-    // 把偏好同步到全局外观状态（非 @Composable 上下文也能读）。
-    androidx.compose.runtime.SideEffect { AppAppearance.dark = prefs.darkTheme }
+    // 把偏好同步到全局外观/语言状态（非 @Composable 上下文也能读）。
+    androidx.compose.runtime.SideEffect {
+        AppAppearance.dark = prefs.darkTheme
+        AppLanguage.zh = prefs.chinese
+    }
 
     LaunchedEffect(vm) {
         awaitStartupReadiness(vm.appState)
@@ -108,14 +111,19 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
             route = current.copy(path = parent)
         } else route = current.back()
     }
+    // 显式读取语言状态，使语言切换时标题/菜单重组。
+    val languageZh = AppLanguage.zh
+
     val secondaryTitle = when (val current = route) {
         AppRoute.Tasks -> null
-        AppRoute.Resources -> "Workspaces"
-        AppRoute.Settings -> "设置"
+        AppRoute.Resources -> T("工作区", "Workspaces")
+        AppRoute.Settings -> T("设置", "Settings")
         is AppRoute.Browser -> browserTitle(app.hosts[current.hostId]?.displayName.orEmpty())
     }
     BackHandler(secondary) { goBack() }
 
+    // 显式读取 darkTheme，使深色/浅色切换时本作用域重组（实时预览）。
+    val darkTheme = prefs.darkTheme
     PinkCollabTheme(colorScheme = accentScheme(prefs.accentTheme)) {
         Crossfade(
             targetState = startupReady,

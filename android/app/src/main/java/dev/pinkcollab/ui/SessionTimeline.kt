@@ -356,7 +356,9 @@ private fun MarkdownBody(
             MessageBodyTextView(context).apply {
                 includeFontPadding = false
                 typeface = ResourcesCompat.getFont(context, dev.pinkcollab.R.font.maple_mono_cn_regular) ?: Typeface.DEFAULT
-                isLongClickable = onCopy != null
+                // 允许长按选择文本（全选 / 部分选），弹系统选择菜单。
+                setTextIsSelectable(true)
+                // 选择开启后仍需链接可点。
                 movementMethod = LinkMovementMethod.getInstance()
                 setLineSpacing(0f, 1.18f)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp)
@@ -364,7 +366,7 @@ private fun MarkdownBody(
         },
         update = { view ->
             view.onCopy = onCopy
-            view.isLongClickable = onCopy != null
+            view.isLongClickable = true
             if (view.currentTextColor != textColor) view.setTextColor(textColor)
             val textSizePx = android.util.TypedValue.applyDimension(
                 android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp, view.resources.displayMetrics,

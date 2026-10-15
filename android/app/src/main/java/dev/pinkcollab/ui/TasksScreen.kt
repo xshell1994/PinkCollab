@@ -441,24 +441,24 @@ private fun TasksTopBar(
             Spacer(Modifier.weight(1f))
         }
         if (showWorkspaces) {
-            TopBarAction(Icons.Outlined.FolderOpen, "Workspaces", openResources)
+            TopBarAction(Icons.Outlined.FolderOpen, T("工作区", "Workspaces"), openResources)
         }
         Box {
-            TopBarAction(Icons.Outlined.Settings, "Conf") { showConfMenu = true }
+            TopBarAction(Icons.Outlined.Settings, T("设置", "Settings")) { showConfMenu = true }
             DropdownMenu(
                 expanded = showConfMenu,
                 onDismissRequest = { showConfMenu = false },
             ) {
                 DropdownMenuItem(
-                    text = { Text("设置") },
+                    text = { Text(T("设置", "Settings")) },
                     onClick = { showConfMenu = false; openSettings() },
                 )
                 DropdownMenuItem(
-                    text = { Text("Check for updates") },
+                    text = { Text(T("检查更新", "Check for updates")) },
                     onClick = { showConfMenu = false; checkForUpdates() },
                 )
                 DropdownMenuItem(
-                    text = { Text("Current version: v${dev.pinkcollab.BuildConfig.VERSION_NAME}") },
+                    text = { Text(T("当前版本 v", "Current version: v") + dev.pinkcollab.BuildConfig.VERSION_NAME) },
                     onClick = { showConfMenu = false; showVersion() },
                 )
             }

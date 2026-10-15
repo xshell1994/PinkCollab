@@ -62,14 +62,15 @@ private fun Modifier.longPressToCopy(onLongPress: () -> Unit): Modifier {
     }
 }
 
-/** Assistant Markdown consumes touches, so long-press copy has to live on the text view. */
+/**
+ * Assistant Markdown consumes touches. 设为可选中文本（长按弹系统菜单：全选/复制/部分选），
+ * 同时保留 [onCopy] 供外部"复制整条"入口使用。
+ */
 internal class MessageBodyTextView(context: Context) : TextView(context) {
     var onCopy: (() -> Unit)? = null
 
     override fun performLongClick(): Boolean {
-        val copy = onCopy ?: return super.performLongClick()
-        copy()
-        sendAccessibilityEvent(AccessibilityEvent.TYPE_VIEW_LONG_CLICKED)
-        return true
+        // 交给系统做文本选择（长按拖拽选段、弹出"全选/复制"菜单）。
+        return super.performLongClick()
     }
 }

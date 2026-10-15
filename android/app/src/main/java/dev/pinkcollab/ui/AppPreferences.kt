@@ -47,6 +47,10 @@ internal class AppPreferences(context: Context) {
     var darkTheme by mutableStateOf(prefs.getBoolean("dark-theme", true))
         private set
 
+    /** 界面语言：true=中文，false=English。 */
+    var chinese by mutableStateOf(prefs.getBoolean("chinese", true))
+        private set
+
     val accentTheme: AccentTheme get() = AccentTheme.fromKey(accentThemeKey)
 
     fun applyMessageFontSize(value: Float) {
@@ -89,11 +93,16 @@ internal class AppPreferences(context: Context) {
         prefs.edit().putBoolean("dark-theme", value).apply()
     }
 
+    fun applyChinese(value: Boolean) {
+        chinese = value
+        prefs.edit().putBoolean("chinese", value).apply()
+    }
+
     companion object {
-        const val MinFontSize = 12f
-        const val MaxFontSize = 20f
-        const val MinCodeFontSize = 10f
-        const val MaxCodeFontSize = 18f
+        const val MinFontSize = 8f
+        const val MaxFontSize = 32f
+        const val MinCodeFontSize = 8f
+        const val MaxCodeFontSize = 28f
         const val MinComposerLines = 3
         const val MaxComposerLines = 10
     }
@@ -102,15 +111,19 @@ internal class AppPreferences(context: Context) {
 /** 强调色主题预设：保留深色底，只换强调色，避免改动整个配色层。 */
 internal enum class AccentTheme(
     val key: String,
-    val label: String,
+    val labelZh: String,
+    val labelEn: String,
     val primary: Long,
     val secondary: Long,
 ) {
-    Purple("purple", "紫罗兰", 0xFF8360DD, 0xFFC069C9),
-    Teal("teal", "青碧", 0xFF4DE0BE, 0xFF52A8E0),
-    Amber("amber", "琥珀", 0xFFF2B84B, 0xFFE08A4D),
-    Green("green", "翠绿", 0xFF5BD37A, 0xFF4DB8A8),
-    Pink("pink", "樱粉", 0xFFE06BA8, 0xFFC069C9);
+    Purple("purple", "紫罗兰", "Violet", 0xFF8360DD, 0xFFC069C9),
+    Teal("teal", "青碧", "Teal", 0xFF4DE0BE, 0xFF52A8E0),
+    Amber("amber", "琥珀", "Amber", 0xFFF2B84B, 0xFFE08A4D),
+    Green("green", "翠绿", "Green", 0xFF5BD37A, 0xFF4DB8A8),
+    Pink("pink", "樱粉", "Pink", 0xFFE06BA8, 0xFFC069C9);
+
+    /** 当前语言下的显示名。 */
+    val label: String get() = if (AppLanguage.zh) labelZh else labelEn
 
     /** ARGB 颜色的 Int 形式（供 Compose Color(Int) 使用）。 */
     val primaryArgb: Int get() = primary.toInt()
