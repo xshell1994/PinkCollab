@@ -61,7 +61,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // 版本号单一来源：versionCode 必须等于 data/AppUpdates.kt 的 versionCodeFromTag("v"+versionName)，
         // 否则应用内更新会因 versionCode 不匹配而拒绝安装。这里直接按同一公式推导，杜绝写错。
-        val appVersionName = "3.3.9"
+        val appVersionName = "3.3.10"
         versionName = appVersionName
         versionCode = appVersionName.split(".").let { parts ->
             val major = parts[0].toInt()

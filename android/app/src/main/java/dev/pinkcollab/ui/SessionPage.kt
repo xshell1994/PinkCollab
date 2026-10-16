@@ -191,33 +191,6 @@ internal fun SessionPage(
 
     val inputEnabled = controls.inputEnabled
     var composerHeightPx by remember(session.id) { mutableIntStateOf(0) }
-    LaunchedEffect(timelineState) {
-        snapshotFlow {
-            (if (timelineState.isScrollInProgress) 1 else 0) or
-                (if (timelineState.lastScrolledBackward) 2 else 0) or
-                (if (timelineState.canScrollForward) 4 else 0)
-        }.collect { scrollFlags ->
-            if (scrollFlags and 3 == 3) {
-                followTimeline = false
-            } else if (scrollFlags and 4 == 0) {
-                followTimeline = true
-            }
-        }
-    }
-    LaunchedEffect(
-        isActive,
-        conversationDisplay,
-        detail.streaming,
-        session.attention,
-        composerHeightPx,
-        composerClearance,
-        followTimeline,
-    ) {
-        if (!isActive || !followTimeline) return@LaunchedEffect
-        withFrameNanos { }
-        val lastItemIndex = timelineState.layoutInfo.totalItemsCount - 1
-        if (lastItemIndex >= 0) timelineState.scrollToItem(lastItemIndex)
-    }
     val density = LocalDensity.current
     // Plan 模式：切换后，下一条消息前缀 "/plan" 以进入 OMP 的只读规划模式（再次切换取消）。
     var planMode by rememberSaveable(session.id) { mutableStateOf(false) }
@@ -274,6 +247,33 @@ internal fun SessionPage(
     val composerClearanceTarget =
         if (composerHidden || immersive) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
     val composerClearance by animateDpAsState(composerClearanceTarget, tween(280), label = "composerClearance")
+    LaunchedEffect(timelineState) {
+        snapshotFlow {
+            (if (timelineState.isScrollInProgress) 1 else 0) or
+                (if (timelineState.lastScrolledBackward) 2 else 0) or
+                (if (timelineState.canScrollForward) 4 else 0)
+        }.collect { scrollFlags ->
+            if (scrollFlags and 3 == 3) {
+                followTimeline = false
+            } else if (scrollFlags and 4 == 0) {
+                followTimeline = true
+            }
+        }
+    }
+    LaunchedEffect(
+        isActive,
+        conversationDisplay,
+        detail.streaming,
+        session.attention,
+        composerHeightPx,
+        composerClearance,
+        followTimeline,
+    ) {
+        if (!isActive || !followTimeline) return@LaunchedEffect
+        withFrameNanos { }
+        val lastItemIndex = timelineState.layoutInfo.totalItemsCount - 1
+        if (lastItemIndex >= 0) timelineState.scrollToItem(lastItemIndex)
+    }
     val imeInsets = WindowInsets.ime
     val navigationInsets = WindowInsets.navigationBars
     // IME insets animate every frame. Moving the composer during placement keeps that
