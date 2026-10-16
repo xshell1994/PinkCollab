@@ -1,20 +1,17 @@
 package dev.pinkcollab.ui
 
 import android.app.Application
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.net.ConnectivityManager
-import android.net.Network
 import android.os.Bundle
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import dev.pinkcollab.BuildConfig
+import dev.pinkcollab.PinkCollabApplication
 import dev.pinkcollab.data.AppRelease
 import dev.pinkcollab.data.AppUpdateDownloader
 import dev.pinkcollab.data.AppUpdateChecker
-import dev.pinkcollab.data.CredentialStore
 import dev.pinkcollab.data.GatewayRepository
 import dev.pinkcollab.data.Session
 import dev.pinkcollab.data.AttentionResponse
@@ -38,7 +35,8 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class CollabViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
-    private val repository = GatewayRepository(viewModelScope, CredentialStore(application), application)
+    // 连接与协议状态挂在进程级 Application 作用域上，界面销毁不影响连接（后台保活，见 PinkCollabApplication）。
+    private val repository = (application as PinkCollabApplication).repository
     internal val appState = repository.state
     internal fun loadMoreSessions(hostId: String) { viewModelScope.launch { runCatching { repository.loadMoreSessions(hostId) }.onFailure { showError(it.message ?: "Sessions unavailable") } } }
     internal fun ensureSessionListed(key: SessionKey) { viewModelScope.launch { runCatching { repository.ensureSessionListed(key) }.onFailure { showError(it.message ?: "Session unavailable") } } }
@@ -63,16 +61,6 @@ class CollabViewModel(application: Application, savedStateHandle: SavedStateHand
     internal val effects = effectChannel.receiveAsFlow()
     private fun showToast(message: String) { effectChannel.trySend(UiEffect.ShowToast(message)) }
     private fun showError(message: String) = showToast(message)
-    private val connectivity = application.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
-        override fun onLost(network: Network) {
-            if (connectivity.activeNetwork == null) repository.networkUnavailable()
-        }
-        // 网络恢复时自动重连所有主机（否则网络断开后一直 offline）。
-        override fun onAvailable(network: Network) {
-            repository.reconnectAll()
-        }
-    }
 
     private val draftStore = SessionDraftStore(decodeDrafts(
         savedStateHandle.get<Bundle>("sessionDraftsV2")?.getString("value")
@@ -125,7 +113,6 @@ class CollabViewModel(application: Application, savedStateHandle: SavedStateHand
         savedStateHandle.setSavedStateProvider("sessionDraftsV2") {
             Bundle().apply { putString("value", encodeDrafts(draftStore.state.value)) }
         }
-        connectivity.registerDefaultNetworkCallback(networkCallback)
         viewModelScope.launch { repository.errors.collect(::showError) }
         viewModelScope.launch { repository.state.collect { sessionCoordinator.updateDetails(it.details) } }
     }
@@ -134,12 +121,9 @@ class CollabViewModel(application: Application, savedStateHandle: SavedStateHand
         sessionListState.followTaskFocus(selections) { loadDetail(it) }
     }
 
-    override fun onCleared() {
-        connectivity.unregisterNetworkCallback(networkCallback)
-        super.onCleared()
-    }
-
     internal fun pairHost(url: String, token: String, attemptId: Long) = hostOperations.pair(url, token, attemptId)
+    /** 界面回到前台：对离线主机立即重连，跳过剩余退避等待。 */
+    internal fun onForeground() = repository.reconnectDisconnected()
     internal fun refreshHost(hostId: String) = hostOperations.refresh(
         hostId, repository.state.value.hosts[hostId]?.connection is ConnectionState.Online,
     )

@@ -19,10 +19,8 @@ import dev.pinkcollab.R
 import dev.pinkcollab.data.SessionStatus
 import dev.pinkcollab.ui.AccentTheme
 // ── Palette: neutral graphite surfaces with restrained violet accents ────────
-// 品牌/语义色：深浅模式通用，保持常量。
-val BrandPurple = Color(0xFF8360DD)
-val BrandPink = Color(0xFFC069C9)
-val Purple400 = BrandPurple
+// 品牌色（BrandPurple/BrandPink）随用户选择的强调色变化，见下方 getter；
+// 语义色（Violet400/Teal300/Amber300/Red400）与强调色无关，保持常量。
 val Purple700 = Color(0xFF372A57)
 val Violet400 = Color(0xFF9B87F5)
 val Teal300 = Color(0xFF4DE0BE)
@@ -39,7 +37,19 @@ val Red400 = Color(0xFFFF5470)
 internal object AppAppearance {
     /** true=深色，false=浅色。 */
     var dark by mutableStateOf(true)
+
+    /**
+     * 当前强调色。全 App 的品牌色（[BrandPurple]/[BrandPink]）都由此派生，
+     * 因此 UI 中大量硬编码的品牌色也会随强调色切换而更新。
+     */
+    var accent by mutableStateOf(AccentTheme.Purple)
 }
+
+// 品牌色：由当前强调色派生（写成 getter，@Composable 读取时自动订阅 AppAppearance）。
+// AccentTheme.primary/secondary 为 ARGB Long，直接构造 Color 即为不透明品牌色。
+val BrandPurple: Color get() = Color(AppAppearance.accent.primary)
+val BrandPink: Color get() = Color(AppAppearance.accent.secondary)
+val Purple400: Color get() = BrandPurple
 
 // ── 明暗相关色：getter 按当前外观返回（调用点写法不变）────────────────────────
 val Base0: Color get() = if (AppAppearance.dark) Color(0xFF07070A) else Color(0xFFF4F4F7)

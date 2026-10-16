@@ -1,6 +1,8 @@
 package dev.pinkcollab.data
 
 import android.content.Context
+import android.net.ConnectivityManager
+import android.net.Network
 import android.net.Uri
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -40,7 +42,21 @@ internal class GatewayRepository(
         outboxStorage ?: SqliteCommandOutboxStorage(context), hostCommandGate)
     private val pairedHosts = PairedHostRegistry(credentials, mutable, ::connect, ::disconnect)
 
+    // 网络监听放在进程级仓库上：即使界面已销毁，网络恢复后也能立即重连（配合后台保活）。
+    private val connectivity =
+        context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    private val networkCallback = object : ConnectivityManager.NetworkCallback() {
+        override fun onLost(network: Network) {
+            if (connectivity.activeNetwork == null) networkUnavailable()
+        }
+
+        override fun onAvailable(network: Network) {
+            reconnectDisconnected()
+        }
+    }
+
     init {
+        connectivity.registerDefaultNetworkCallback(networkCallback)
         scope.launch {
             try {
                 pairedHosts.initialize()
@@ -150,13 +166,15 @@ internal class GatewayRepository(
         connections.networkUnavailable(state.value.hosts.filterValues { it.connection != ConnectionState.AuthenticationRequired && it.connection != ConnectionState.UpgradeRequired }.keys)
     }
 
-    /** 网络恢复后重连所有主机（跳过需重新认证/升级的）。 */
-    fun reconnectAll() {
+    /**
+     * 重连所有**已断开**的主机，用于网络恢复或界面回到前台时。
+     *
+     * 只处理 offline（含退避等待中的）主机：不打断正在 Connecting/Synchronizing/Online 的会话，
+     * 也不触碰需要重新认证/升级的主机——否则网络抖动或后台返回会白白踢掉正常连接。
+     */
+    fun reconnectDisconnected() {
         state.value.hosts.values
-            .filter {
-                it.connection != ConnectionState.AuthenticationRequired &&
-                    it.connection != ConnectionState.UpgradeRequired
-            }
+            .filter { it.connection is ConnectionState.Offline }
             .forEach { host -> connect(host.paired) }
     }
 

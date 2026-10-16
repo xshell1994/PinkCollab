@@ -28,6 +28,7 @@ import dev.pinkcollab.ui.theme.Base0
 import dev.pinkcollab.ui.theme.PinkCollabTheme
 import dev.pinkcollab.ui.theme.accentScheme
 import dev.pinkcollab.ui.theme.rememberHapticOnClick
+import kotlinx.coroutines.awaitCancellation
 
 @Composable
 fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
@@ -49,6 +50,7 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
     // 把偏好同步到全局外观/语言状态（非 @Composable 上下文也能读）。
     androidx.compose.runtime.SideEffect {
         AppAppearance.dark = prefs.darkTheme
+        AppAppearance.accent = prefs.accentTheme
         AppLanguage.zh = prefs.chinese
     }
 
@@ -61,6 +63,13 @@ fun PinkCollabApp(vm: CollabViewModel = viewModel()) {
             lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 vm.followTaskFocus(snapshotFlow { selectedSession })
             }
+        }
+    }
+    // 回到前台时立即重连离线主机，免去等待剩余退避时间。
+    LaunchedEffect(vm, lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            vm.onForeground()
+            awaitCancellation()
         }
     }
     LaunchedEffect(startupReady, vm) {

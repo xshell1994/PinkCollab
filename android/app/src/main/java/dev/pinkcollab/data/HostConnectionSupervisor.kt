@@ -296,7 +296,7 @@ internal fun connectionFailure(error: Throwable, httpCode: Int? = null): Connect
     else -> ConnectionState.Offline("Connection interrupted")
 }
 
-/** 自动重连退避参数：首次 1s，逐次翻倍，上限 30s（保证长期 offline 时也能自动恢复）。 */
-private const val InitialBackoffMillis = 1_000L
-private const val MaxBackoffMillis = 30_000L
+/** 自动重连退避参数：首次 0.5s，逐次翻倍，上限 10s（保证长期 offline 时也能较快自动恢复）。 */
+private const val InitialBackoffMillis = 500L
+private const val MaxBackoffMillis = 10_000L
 

@@ -38,7 +38,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
-val BrandGradient: Brush = Brush.linearGradient(listOf(BrandPurple, BrandPink))
+val BrandGradient: Brush get() = Brush.linearGradient(listOf(BrandPurple, BrandPink))
 
 /** Paint icon/vector content with the same purple-to-pink brand gradient used by text. */
 fun Modifier.brandGradientMask(): Modifier =
