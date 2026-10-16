@@ -13,6 +13,11 @@ on:
         description: "Release title"
         required: false
         type: string
+      publish:
+        description: "Create/update the GitHub Release (disable for build-only runs)"
+        required: false
+        type: boolean
+        default: true
 
 permissions:
   contents: write
@@ -92,7 +97,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish release
-        if: ${{ inputs.tag != '' }}
+        if: ${{ inputs.publish }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
