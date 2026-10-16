@@ -210,6 +210,7 @@ internal fun SessionPage(
         detail.streaming,
         session.attention,
         composerHeightPx,
+        composerClearance,
         followTimeline,
     ) {
         if (!isActive || !followTimeline) return@LaunchedEffect
@@ -389,7 +390,7 @@ internal fun SessionPage(
                         color = BrandPink,
                     )
                 }
-                if (isActive && userMessageIndices.isNotEmpty() && !immersive) {
+                if (isActive && userMessageIndices.isNotEmpty()) {
                     UserMessageNavigator(
                         userMessageIndices = userMessageIndices,
                         timelineState = timelineState,
@@ -397,7 +398,9 @@ internal fun SessionPage(
                         onScrub = { index -> navScope.launch { timelineState.scrollToItem(index) } },
                         modifier = Modifier
                             .align(Alignment.CenterEnd)
-                            .padding(end = 4.dp, top = todoClearance + 12.dp, bottom = composerClearance + 12.dp),
+                            .heightIn(max = 420.dp)
+                            .fillMaxHeight(0.6f)
+                            .padding(end = 2.dp, top = todoClearance + 12.dp, bottom = composerClearance + 12.dp),
                     )
                 }
             }
@@ -709,7 +712,7 @@ private fun UserMessageNavigator(
 ) {
     if (userMessageIndices.isEmpty()) return
     val accent = MaterialTheme.colorScheme.primary
-    val track = TextMid.copy(alpha = 0.30f)
+    val track = TextMid.copy(alpha = 0.45f)
     // 当前可视首项对应的「我发的消息」序号（用于高亮）。
     val activeOrdinal by remember(userMessageIndices) {
         derivedStateOf {
@@ -721,57 +724,62 @@ private fun UserMessageNavigator(
             ordinal
         }
     }
-    val count = userMessageIndices.size
     val lastIndex = userMessageIndices.last()
     val firstIndex = userMessageIndices.first()
     val span = (lastIndex - firstIndex).coerceAtLeast(1)
 
     Box(
         modifier
-            .width(26.dp)
-            .height(200.dp)
+            .width(30.dp)
             .pointerInput(userMessageIndices) {
-                fun jumpTo(y: Float) {
+                fun locate(y: Float, scrub: Boolean) {
                     val h = size.height.toFloat().coerceAtLeast(1f)
                     val fraction = (y / h).coerceIn(0f, 1f)
                     val target = firstIndex + (fraction * span).roundToInt()
-                    // 找最近的一条用户消息。
-                    val nearest = userMessageIndices.minByOrNull { abs(it - target) }
-                    if (nearest != null) onJump(nearest)
+                    val nearest = userMessageIndices.minByOrNull { abs(it - target) } ?: return
+                    if (scrub) onScrub(nearest) else onJump(nearest)
                 }
-                detectTapGestures { offset -> jumpTo(offset.y) }
+                detectDragGestures(
+                    onDragStart = { offset -> locate(offset.y, scrub = true) },
+                    onDrag = { change, _ -> locate(change.position.y, scrub = true); change.consume() },
+                    onDragEnd = { },
+                    onDragCancel = { },
+                )
             }
             .pointerInput(userMessageIndices) {
-                detectDragGestures { change, _ ->
+                detectTapGestures { offset ->
                     val h = size.height.toFloat().coerceAtLeast(1f)
-                    val fraction = (change.position.y / h).coerceIn(0f, 1f)
+                    val fraction = (offset.y / h).coerceIn(0f, 1f)
                     val target = firstIndex + (fraction * span).roundToInt()
-                    userMessageIndices.minByOrNull { abs(it - target) }?.let(onScrub)
-                    change.consume()
+                    userMessageIndices.minByOrNull { abs(it - target) }?.let(onJump)
                 }
             }
             .testTag("userMessageNavigator"),
     ) {
-        Canvas(
-            Modifier.fillMaxSize(),
-        ) {
+        Canvas(Modifier.fillMaxSize()) {
             val cx = size.width / 2f
             val h = size.height
-            // 轨道
-            drawLine(
-                color = track,
-                start = androidx.compose.ui.geometry.Offset(cx, h * 0.05f),
-                end = androidx.compose.ui.geometry.Offset(cx, h * 0.95f),
-                strokeWidth = 2.dp.toPx(),
+            val top = 8.dp.toPx()
+            val bottom = h - 8.dp.toPx()
+            val usable = (bottom - top).coerceAtLeast(1f)
+            // 半透明胶囊底，确保控件在任意底色上都能被看到。
+            drawRoundRect(
+                color = track.copy(alpha = 0.18f),
+                topLeft = androidx.compose.ui.geometry.Offset(cx - 9.dp.toPx(), top),
+                size = Size(18.dp.toPx(), usable),
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(9.dp.toPx()),
             )
-            // 每条用户消息一个刻度点
             userMessageIndices.forEachIndexed { ordinal, index ->
                 val fraction = (index - firstIndex).toFloat() / span
-                val y = h * 0.05f + fraction * h * 0.90f
+                val y = top + fraction * usable
                 val isActive = ordinal == activeOrdinal
+                if (isActive) {
+                    drawCircle(color = accent.copy(alpha = 0.25f), radius = 7.dp.toPx(),
+                        center = androidx.compose.ui.geometry.Offset(cx, y))
+                }
                 drawCircle(
                     color = if (isActive) accent else track,
-                    radius = (if (isActive) 4.5.dp else 2.5.dp).toPx(),
+                    radius = (if (isActive) 3.5.dp else 2.dp).toPx(),
                     center = androidx.compose.ui.geometry.Offset(cx, y),
                 )
             }
