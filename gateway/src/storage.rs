@@ -152,7 +152,17 @@ CREATE TABLE IF NOT EXISTS pairing (token_hash TEXT PRIMARY KEY,expires_at INTEG
         if schema_version < 7 {
             history_policy::migrate_file_expectation(&db)?;
         }
-        if schema_version < 8 {
+        if schema_version < 8
+            || db.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('session_records') WHERE name='last_activity_at'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )?
+                == 0
+        {
+            // Fork builds stamped v8 for the `pgid` lease column without the upstream catalog
+            // migration; a missing `last_activity_at` identifies those databases, and `migrate`
+            // is idempotent for everything else.
             catalog::migrate(&db)?;
         }
         if schema_version < 9 {
