@@ -99,7 +99,17 @@ impl Store {
 
 pub(super) fn migrate_shared_references(db: &Connection) -> Result<()> {
     let tx = rusqlite::Transaction::new_unchecked(db, rusqlite::TransactionBehavior::Immediate)?;
-    if tx.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))? >= 9 {
+    // Fork databases stamped user_version=9 for the pgid lease column before upstream
+    // claimed v9 for shared references, so a version check alone would skip this
+    // migration and leave the table missing. Rebuild whenever the table is absent.
+    let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get::<_, i64>(0))?;
+    if version >= 9
+        && tx.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='engine_references'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )? > 0
+    {
         return Ok(());
     }
     let mappings = {

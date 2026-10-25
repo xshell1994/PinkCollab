@@ -44,6 +44,24 @@ impl SessionController {
                 })
                 .await?;
         }
+        #[cfg(unix)]
+        {
+            let session_id = self.state.lock().await.session.id.clone();
+            self.store
+                .run(move |store| {
+                    if let Some((generation, pgid)) = store.runtime_group(&session_id)?
+                        && !omp::unix_group_has_live_members(pgid)?
+                    {
+                        // A process group that still has a live member keeps the lease. An empty
+                        // one is proof that the old OMP tree is gone, so the lease can be reclaimed;
+                        // legacy leases carry no pgid and remain fail-closed.
+                        store.mark_generation_unknown(&session_id, &generation)?;
+                        store.release_runtime(&session_id, &generation)?;
+                    }
+                    Ok(())
+                })
+                .await?;
+        }
         let permit = self
             .quota
             .clone()
@@ -105,6 +123,31 @@ impl SessionController {
                 return Err(err);
             }
         };
+        #[cfg(unix)]
+        {
+            // Record the group before anything else can observe this runtime. Without the pgid a
+            // later Gateway has no proof this tree is gone and would refuse to start the session
+            // again (fail-closed), so a failed write-back has to undo the spawn instead.
+            let group_session = session.id.clone();
+            let group_generation = generation.clone();
+            let pgid = runtime.process_group();
+            let recorded = self
+                .store
+                .run(move |store| store.set_runtime_group(&group_session, &group_generation, pgid))
+                .await;
+            if !matches!(recorded, Ok(true)) {
+                let _ = runtime.stop_confirmed().await;
+                let release_session = session.id.clone();
+                let release_generation = generation.clone();
+                let _ = self
+                    .store
+                    .run(move |store| store.release_runtime(&release_session, &release_generation))
+                    .await;
+                return Err(recorded.err().unwrap_or_else(|| {
+                    anyhow::anyhow!("runtime lease changed before its process group was recorded")
+                }));
+            }
+        }
         {
             let mut state = self.state.lock().await;
             ensure!(state.runtime.is_none(), "runtime started concurrently");

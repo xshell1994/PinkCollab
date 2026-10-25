@@ -228,7 +228,7 @@ pub(crate) fn finite_output(
 }
 
 #[cfg(unix)]
-fn unix_group_has_live_members(group_id: i32) -> Result<bool> {
+pub fn unix_group_has_live_members(group_id: i32) -> Result<bool> {
     #[cfg(target_os = "macos")]
     {
         // Darwin can return EPERM for killpg(group, 0) while only zombies remain.
@@ -753,6 +753,13 @@ impl Runtime {
 
     pub fn alive(&self) -> bool {
         !*self.exited.borrow()
+    }
+
+    /// Identity of the process group OMP leads. The gateway persists it so a *later* process can
+    /// prove this group is empty before reclaiming a lease left behind by an unclean exit.
+    #[cfg(unix)]
+    pub(crate) fn process_group(&self) -> i32 {
+        self.process.group_id
     }
 }
 

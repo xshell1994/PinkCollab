@@ -295,7 +295,7 @@ class GatewayRepositorySafetyTest {
         assertEquals(listOf("intent-two"), sent)
     }
 
-    @Test fun claimed_old_prompt_blocks_a_new_draft_until_its_receipt_exists() = runBlocking {
+    @Test fun claimed_old_prompt_is_redispatched_when_the_gateway_lost_its_receipt() = runBlocking {
         val storage = MemoryOutbox()
         val old = PendingCommand(request().key, "host", "client", "session", "intent-one", "prompt",
             JSONObject().put("commandId", "intent-one").put("type", "prompt").put("message", "old").toString())
@@ -310,12 +310,44 @@ class GatewayRepositorySafetyTest {
         )
         val recovering = async(Dispatchers.Default) { DurableCommandOutbox(storage).recover(old, transport) }
         claimed.await()
-        try { DurableCommandOutbox(storage).submit(request("intent-two"), transport); throw AssertionError() }
-        catch (failure: IOException) { assertTrue(failure.message.orEmpty().contains("Earlier prompt")) }
-        assertTrue(sent.isEmpty())
+        storage.afterClaim = null
+        DurableCommandOutbox(storage).submit(request("intent-two"), transport)
+        assertTrue(sent.contains("intent-two"))
         resume.complete(Unit)
         recovering.await()
-        assertEquals(listOf("intent-one"), sent)
+        assertTrue(sent.contains("intent-one"))
+    }
+
+    @Test fun unknown_outcome_prompt_does_not_block_a_new_draft() = runBlocking {
+        val storage = MemoryOutbox()
+        val unknown = PendingCommand(request().key, "host", "client", "session", "intent-one", "prompt",
+            JSONObject().put("commandId", "intent-one").put("type", "prompt").put("message", "old").toString(),
+            CommandState.POSTED)
+        storage.insertIfAbsent(unknown)
+        val sent = mutableListOf<String>()
+        val transport = CommandTransport(
+            post = { body -> sent += body.getString("commandId"); JSONObject().put("operation", receipt(body.getString("commandId"), "pending")) },
+            lookup = { if (it == "intent-one") JSONObject().put("id", it).put("state", "unknown").put("kind", "prompt") else missing() },
+        )
+        DurableCommandOutbox(storage).submit(request("intent-two", "new"), transport)
+        assertEquals(listOf("intent-two"), sent)
+        assertEquals(listOf("intent-two"), storage.records().map { it.id })
+    }
+
+    @Test fun lookup_only_prompt_without_a_receipt_is_retired() = runBlocking {
+        val storage = MemoryOutbox()
+        val stuck = PendingCommand(request().key, "host", "client", "session", "intent-one", "prompt",
+            JSONObject().put("commandId", "intent-one").put("type", "prompt").put("message", "old").toString(),
+            CommandState.LOOKUP_ONLY)
+        storage.insertIfAbsent(stuck)
+        val sent = mutableListOf<String>()
+        val transport = CommandTransport(
+            post = { body -> sent += body.getString("commandId"); JSONObject().put("operation", receipt(body.getString("commandId"), "pending")) },
+            lookup = { missing() },
+        )
+        DurableCommandOutbox(storage).submit(request("intent-two"), transport)
+        assertEquals(listOf("intent-two"), sent)
+        assertEquals(listOf("intent-two"), storage.records().map { it.id })
     }
 
     @Test fun lost_stop_response_is_lookup_only() = runBlocking {

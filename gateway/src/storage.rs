@@ -154,11 +154,46 @@ CREATE TABLE IF NOT EXISTS pairing (token_hash TEXT PRIMARY KEY,expires_at INTEG
         if schema_version < 7 {
             history_policy::migrate_file_expectation(&db)?;
         }
-        if schema_version < 8 {
+        if schema_version < 8
+            || db.query_row(
+                "SELECT COUNT(*) FROM pragma_table_info('session_records') WHERE name='last_activity_at'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )?
+                == 0
+        {
+            // Fork builds stamped v8 for the `pgid` lease column without the upstream catalog
+            // migration; a missing `last_activity_at` identifies those databases, and `migrate`
+            // is idempotent for everything else.
             catalog::migrate(&db)?;
         }
         if schema_version < 9 {
             references::migrate_shared_references(&db)?;
+        }
+        // Unix leases record the process group that owned the OMP tree, so a later Gateway can
+        // prove the group is empty and reclaim a lease left behind by an unclean exit. Leases
+        // written before this column existed have no such proof and stay fail-closed. Fork
+        // databases stamped user_version=9 for this column before upstream claimed v9 for the
+        // shared-references migration, so this runs unconditionally and idempotently.
+        db.execute_batch("BEGIN IMMEDIATE;")?;
+        let pgid_migration =
+            (|| -> Result<()> {
+                if db.query_row(
+                    "SELECT COUNT(*) FROM pragma_table_info('runtime_leases') WHERE name='pgid'",
+                    [],
+                    |row| row.get::<_, i64>(0),
+                )? == 0
+                {
+                    db.execute_batch("ALTER TABLE runtime_leases ADD COLUMN pgid INTEGER;")?;
+                }
+                Ok(())
+            })();
+        match pgid_migration {
+            Ok(()) => db.execute_batch("COMMIT;")?,
+            Err(error) => {
+                let _ = db.execute_batch("ROLLBACK;");
+                return Err(error);
+            }
         }
         db.execute_batch(
             "CREATE INDEX IF NOT EXISTS response_feedback
@@ -613,6 +648,26 @@ CREATE TABLE IF NOT EXISTS pairing (token_hash TEXT PRIMARY KEY,expires_at INTEG
     pub(crate) fn runtime_job(&self, session_id: &str) -> Result<Option<(String, String)>> {
         Ok(self.db.lock().query_row(
             "SELECT generation,windows_job_name FROM runtime_leases WHERE session_id=?1 AND windows_job_name IS NOT NULL",
+            [session_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        ).optional()?)
+    }
+    /// Records the process group that owns the OMP tree. The reservation itself has to precede
+    /// the spawn (it is the atomic claim that keeps two writers apart), so the group id lands in a
+    /// second statement once the child exists.
+    #[cfg(unix)]
+    pub fn set_runtime_group(&self, session_id: &str, generation: &str, pgid: i32) -> Result<bool> {
+        Ok(self.db.lock().execute(
+            "UPDATE runtime_leases SET pgid=?3 WHERE session_id=?1 AND generation=?2",
+            params![session_id, generation, pgid],
+        )? == 1)
+    }
+    /// Returns the recorded process group only when this lease carries that proof. Legacy leases
+    /// written before the column existed stay `None` so callers keep them fail-closed.
+    #[cfg(unix)]
+    pub fn runtime_group(&self, session_id: &str) -> Result<Option<(String, i32)>> {
+        Ok(self.db.lock().query_row(
+            "SELECT generation,pgid FROM runtime_leases WHERE session_id=?1 AND pgid IS NOT NULL",
             [session_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         ).optional()?)
