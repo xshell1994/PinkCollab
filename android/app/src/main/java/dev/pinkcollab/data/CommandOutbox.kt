@@ -183,7 +183,7 @@ internal class DurableCommandOutbox(private val storage: CommandOutboxStorage) {
         val key = request.key
         if (request.type == "prompt") {
             require(!request.intentId.isNullOrBlank()) { "Prompt intent ID required" }
-            settleEarlierPrompts(request, transport.lookup)
+            settleEarlierPrompts(request, transport)
             // A restored draft can outlive its local row. Its stable intent ID is also the Gateway ID.
             if (storage.find(key) == null) {
                 lookupReceipt(transport.lookup, request.intentId)?.let { checkReceipt(it, request.intentId); return }
@@ -243,18 +243,33 @@ internal class DurableCommandOutbox(private val storage: CommandOutboxStorage) {
         settle(pending, response.getJSONObject("operation"))
     }
 
-    private suspend fun settleEarlierPrompts(request: CommandRequest, lookup: suspend (String) -> JSONObject) {
+    private suspend fun settleEarlierPrompts(request: CommandRequest, transport: CommandTransport) {
         for (saved in storage.promptsFor(request.hostId, request.clientId, request.sessionId)) {
             if (saved.key == request.key) continue
             if (saved.state == CommandState.PREPARED &&
                 storage.removeIfState(saved.key, saved.id, CommandState.PREPARED)) continue
             val current = storage.find(saved.key)?.takeIf { it.id == saved.id } ?: continue
-            val receipt = lookupReceipt(lookup, current.id)
-                ?: throw IOException("Earlier prompt ${current.id} is unconfirmed. Retry that draft before sending another prompt.")
+            val receipt = lookupReceipt(transport.lookup, current.id)
+            if (receipt == null) {
+                if (current.state == CommandState.LOOKUP_ONLY) {
+                    // No receipt exists anywhere and a LOOKUP_ONLY row cannot be re-posted;
+                    // retire it so the session is not wedged behind an unsettleable row.
+                    storage.remove(current.key, current.id)
+                    continue
+                }
+                // The Gateway never stored the operation: the POST never landed. Re-deliver
+                // the draft idempotently (its intent ID is the Gateway command ID) instead of
+                // stalling every future prompt behind a row the Gateway cannot settle.
+                execute(current, transport)
+                continue
+            }
             val status = receipt.getString("state")
             if (status == "unknown") {
-                storage.transition(current.key, current.id, CommandState.POSTED, CommandState.LOOKUP_ONLY)
-                throw IOException("Earlier prompt ${current.id} has an unconfirmed outcome")
+                // The runtime exited without confirming; this receipt can never change.
+                // Retire the row so a new prompt can proceed (session history shows
+                // whatever the interrupted run managed to produce).
+                storage.remove(current.key, current.id)
+                continue
             }
             settle(current, receipt, allowTerminalFailure = true)
         }

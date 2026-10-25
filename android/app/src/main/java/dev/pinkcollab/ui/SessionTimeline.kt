@@ -3,7 +3,6 @@ package dev.pinkcollab.ui
 import android.content.Context
 import android.graphics.Typeface
 import android.os.SystemClock
-import android.text.method.LinkMovementMethod
 import android.text.Spanned
 import android.text.style.ForegroundColorSpan
 import androidx.core.content.res.ResourcesCompat
@@ -65,6 +64,7 @@ import io.noties.markwon.core.MarkwonTheme
 import io.noties.markwon.ext.strikethrough.StrikethroughPlugin
 import io.noties.markwon.ext.tasklist.TaskListPlugin
 import io.noties.markwon.ext.tables.TablePlugin
+import io.noties.markwon.ext.tables.TableAwareMovementMethod
 import io.noties.markwon.html.HtmlPlugin
 import io.noties.markwon.image.ImagesPlugin
 import io.noties.markwon.linkify.LinkifyPlugin
@@ -409,18 +409,22 @@ private fun MarkdownBody(
     onCopy: (() -> Unit)?,
 ) {
     var rendered by remember(renderer, messageId) { mutableStateOf<Spanned?>(null) }
-    LaunchedEffect(renderer, messageId, markdown) { rendered = renderer.render(markdown) }
     val textColor = color.toArgb()
     val textSizeSp = MaterialTheme.typography.bodyMedium.fontSize.value
+    LaunchedEffect(renderer, messageId, markdown, textSizeSp, textColor) {
+        rendered = renderer.render(markdown)
+    }
     AndroidView(
+        modifier = Modifier.fillMaxWidth(),
         factory = { context ->
             MessageBodyTextView(context).apply {
                 includeFontPadding = false
                 typeface = ResourcesCompat.getFont(context, dev.pinkcollab.R.font.maple_mono_cn_regular) ?: Typeface.DEFAULT
                 // 允许长按选择文本（全选 / 部分选），弹系统选择菜单。
                 setTextIsSelectable(true)
-                // 选择开启后仍需链接可点。
-                movementMethod = LinkMovementMethod.getInstance()
+                isLongClickable = onCopy != null
+                // 表格感知的链接处理：Markdown 表格内链接仍可点（自上游 4.x）。
+                movementMethod = TableAwareMovementMethod.create()
                 setLineSpacing(0f, 1.18f)
                 setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, textSizeSp)
             }

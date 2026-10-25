@@ -45,12 +45,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -247,32 +251,38 @@ internal fun SessionPage(
     val composerClearanceTarget =
         if (composerHidden || immersive) 0.dp else with(density) { composerHeightPx.toDp() } + 12.dp
     val composerClearance by animateDpAsState(composerClearanceTarget, tween(280), label = "composerClearance")
-    LaunchedEffect(timelineState) {
-        snapshotFlow {
-            (if (timelineState.isScrollInProgress) 1 else 0) or
-                (if (timelineState.lastScrolledBackward) 2 else 0) or
-                (if (timelineState.canScrollForward) 4 else 0)
-        }.collect { scrollFlags ->
-            if (scrollFlags and 3 == 3) {
-                followTimeline = false
-            } else if (scrollFlags and 4 == 0) {
-                followTimeline = true
+    // 时间线跟随稳定化（自上游 4.x）：NestedScrollConnection 在用户回看历史时立即停跟；
+    // 跟随改为按实测布局驱动——Markdown 渲染完成后的布局变化（含回复增长/工具切换）也能跟上，
+    // 而不是与下一帧赛跑。
+    val timelineScrollIntent = remember(timelineState) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                if (source == NestedScrollSource.UserInput && available.y > 0f && timelineState.canScrollBackward) {
+                    followTimeline = false
+                }
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(consumed: Offset, available: Offset, source: NestedScrollSource): Offset {
+                // Layout changes can temporarily fit the viewport; only scrolling
+                // forward to the end resumes following after manual inspection.
+                if (consumed.y < 0f && !timelineState.canScrollForward) followTimeline = true
+                return Offset.Zero
             }
         }
     }
-    LaunchedEffect(
-        isActive,
-        conversationDisplay,
-        detail.streaming,
-        session.attention,
-        composerHeightPx,
-        composerClearance,
-        followTimeline,
-    ) {
+    // Markdown finishes rendering after its source update. Follow measured layout,
+    // including reply growth and tool transitions, rather than racing the next frame.
+    LaunchedEffect(isActive, followTimeline) {
         if (!isActive || !followTimeline) return@LaunchedEffect
-        withFrameNanos { }
-        val lastItemIndex = timelineState.layoutInfo.totalItemsCount - 1
-        if (lastItemIndex >= 0) timelineState.scrollToItem(lastItemIndex)
+        snapshotFlow {
+            if (timelineState.isScrollInProgress) null else timelineState.layoutInfo
+        }.collect { layout ->
+            if (layout != null && timelineState.canScrollForward) {
+                val last = layout.totalItemsCount - 1
+                if (last >= 0) timelineState.scrollToItem(last)
+            }
+        }
     }
     val imeInsets = WindowInsets.ime
     val navigationInsets = WindowInsets.navigationBars
@@ -322,7 +332,7 @@ internal fun SessionPage(
                 onRefresh = { onLoadEarlier() },
             )) {
                 LazyColumn(
-                    Modifier.fillMaxSize().testTag("sessionTimeline").semantics {
+                    Modifier.fillMaxSize().nestedScroll(timelineScrollIntent).testTag("sessionTimeline").semantics {
                         if (canLoadEarlier) {
                             customActions = listOf(CustomAccessibilityAction("Load earlier messages", onLoadEarlier))
                         }
@@ -336,9 +346,12 @@ internal fun SessionPage(
                     verticalArrangement = Arrangement.spacedBy(if (compactDensity) 0.dp else 2.dp),
                 ) {
                     items(conversationDisplay, key = { it.id }, contentType = { it::class }) { item ->
-                        val running = item is SessionDisplayItem.ActivityGroup && item.operations.any { it.callId in liveOperationIds }
-                        DisplayItem(item, renderer, liveActivity = running && host?.connected == true &&
-                            session.status == SessionStatus.Running, toolDetails = toolDetails)
+                        Box(Modifier.animateItem(fadeInSpec = tween(220), placementSpec = null)) {
+                            val running = item is SessionDisplayItem.ActivityGroup &&
+                                item.operations.any { it.callId in liveOperationIds }
+                            DisplayItem(item, renderer, liveActivity = running && host?.connected == true &&
+                                session.status == SessionStatus.Running, toolDetails = toolDetails)
+                        }
                     }
                     if (session.runtimeAttached && detail.streaming.isNotBlank()) item(key = "streaming") {
                         Column(
@@ -379,7 +392,7 @@ internal fun SessionPage(
                         }
                     }
                     // A separate end anchor reaches the bottom even when the final message is taller than the viewport.
-                    item(key = "timeline-end") { Spacer(Modifier.height(1.dp)) }
+                    item(key = "timeline-end") { Spacer(Modifier.fillMaxWidth().height(1.dp).testTag("timelineEnd")) }
                 }
                 if (savedHistory.nextCursor != null || activity.history) {
                     PullToRefreshDefaults.Indicator(
