@@ -42,6 +42,9 @@ import kotlinx.coroutines.launch
 class CollabViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
     private val repository = GatewayRepository(viewModelScope, CredentialStore(application), application)
     internal val appState = repository.state
+    /** 回前台探活入口：立即重连已掉线主机（活跃连接自动跳过）。 */
+    internal fun reconnectAllHosts() = repository.reconnectAll()
+
     internal fun loadMoreSessions(hostId: String) { viewModelScope.launch { runCatching { repository.loadMoreSessions(hostId) }.onFailure { showError(it.message ?: "Sessions unavailable") } } }
     internal fun ensureSessionListed(key: SessionKey) { viewModelScope.launch { runCatching { repository.ensureSessionListed(key) }.onFailure { showError(it.message ?: "Session unavailable") } } }
     internal val navigationState = appState.map(::navigationState)

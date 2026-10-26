@@ -55,6 +55,10 @@ internal class AppPreferences(context: Context) {
     var immersiveButtonLeft by mutableStateOf(prefs.getBoolean("immersive-button-left", false))
         private set
 
+    /** 后台保活：退后台后以常驻通知持有前台服务，防止系统冻结断开网关连接。 */
+    var keeperEnabled by mutableStateOf(prefs.getBoolean("connection-keeper", true))
+        private set
+
     /** 上次配对用的网关地址（省得每次重填；token 一次性不存）。 */
     var lastGatewayUrl by mutableStateOf(prefs.getString("last-gateway-url", "") ?: "")
         private set
@@ -109,6 +113,11 @@ internal class AppPreferences(context: Context) {
     fun applyImmersiveButtonLeft(value: Boolean) {
         immersiveButtonLeft = value
         prefs.edit().putBoolean("immersive-button-left", value).apply()
+    }
+
+    fun applyKeeperEnabled(value: Boolean) {
+        keeperEnabled = value
+        prefs.edit().putBoolean("connection-keeper", value).apply()
     }
 
     fun rememberGatewayUrl(url: String) {

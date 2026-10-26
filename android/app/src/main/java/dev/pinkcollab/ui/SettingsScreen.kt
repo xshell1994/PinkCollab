@@ -15,8 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import dev.pinkcollab.ConnectionKeeper
 import dev.pinkcollab.ui.theme.*
 
 /**
@@ -27,6 +29,7 @@ import dev.pinkcollab.ui.theme.*
 internal fun SettingsScreen(prefs: AppPreferences) {
     // 显式读取语言状态，保证切换语言时本页重组。
     val lang = AppLanguage.zh
+    val context = LocalContext.current
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp, vertical = 12.dp),
@@ -46,6 +49,23 @@ internal fun SettingsScreen(prefs: AppPreferences) {
                 checked = prefs.autoCheckUpdates,
                 onCheckedChange = { prefs.applyAutoCheckUpdates(it) },
             )
+            Spacer(Modifier.height(12.dp))
+            SettingsSwitch(
+                label = T("后台保持连接", "Keep connection in background"),
+                description = T("退后台后常驻低优先级通知，防止系统冻结导致会话断开（推荐开启）",
+                    "Shows a silent notification while backgrounded so the OS won't freeze the connection (recommended)"),
+                checked = prefs.keeperEnabled,
+                onCheckedChange = { checked ->
+                    prefs.applyKeeperEnabled(checked)
+                    ConnectionKeeper.apply(context, checked)
+                },
+            )
+            Spacer(Modifier.height(12.dp))
+            SettingsAction(
+                label = T("加入电池优化白名单", "Ignore battery optimizations"),
+                description = T("进一步提升后台存活率；ColorOS 还建议在「自启动管理」中允许本应用",
+                    "Further improves background survival; on ColorOS also allow auto-start for this app"),
+            ) { ConnectionKeeper.requestIgnoreBatteryOptimization(context) }
         }
 
         SettingsSection(T("外观", "Appearance")) {
@@ -216,6 +236,32 @@ private fun SettingsSlider(
             onValueChange = onChange,
             valueRange = valueRange,
             steps = steps.coerceAtLeast(0),
+        )
+    }
+}
+
+@Composable
+private fun SettingsAction(
+    label: String,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            SettingsLabel(label)
+            Text(
+                description,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Text(
+            T("前往", "Go"),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
