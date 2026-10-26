@@ -47,13 +47,18 @@ import dev.pinkcollab.ui.theme.BrandPink
 import dev.pinkcollab.ui.theme.BrandPurple
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.math.PI
 import kotlin.math.sin
 
 internal suspend fun awaitStartupReadiness(
     appStates: StateFlow<AppState>,
 ) {
-    appStates.first { it.taskListLoadState != TaskListLoadState.Loading }
+    // 秒开：目录首载通常几百 ms；但慢网/网关未就绪时不无限阻塞首帧——
+    // 超过 3.5s 直接放行进主界面，加载状态在任务页内继续展示。
+    withTimeoutOrNull(3_500) {
+        appStates.first { it.taskListLoadState != TaskListLoadState.Loading }
+    } ?: Unit
 }
 
 @Composable

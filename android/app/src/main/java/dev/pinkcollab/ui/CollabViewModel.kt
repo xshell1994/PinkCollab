@@ -35,6 +35,8 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 class CollabViewModel(application: Application, savedStateHandle: SavedStateHandle) : AndroidViewModel(application) {
@@ -64,13 +66,20 @@ class CollabViewModel(application: Application, savedStateHandle: SavedStateHand
     private fun showToast(message: String) { effectChannel.trySend(UiEffect.ShowToast(message)) }
     private fun showError(message: String) = showToast(message)
     private val connectivity = application.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    // 网络恢复防抖：切网时 onAvailable 可能连发多次，每次 connect() 都会 stop+start 活跃连接；
+    // 合并成一次延迟触发，既能立即重试又不打断已在同步的连接。
+    private var reconnectJob: Job? = null
     private val networkCallback = object : ConnectivityManager.NetworkCallback() {
         override fun onLost(network: Network) {
             if (connectivity.activeNetwork == null) repository.networkUnavailable()
         }
         // 网络恢复时自动重连所有主机（否则网络断开后一直 offline）。
         override fun onAvailable(network: Network) {
-            repository.reconnectAll()
+            reconnectJob?.cancel()
+            reconnectJob = viewModelScope.launch {
+                delay(600)
+                repository.reconnectAll()
+            }
         }
     }
 
@@ -128,6 +137,15 @@ class CollabViewModel(application: Application, savedStateHandle: SavedStateHand
         connectivity.registerDefaultNetworkCallback(networkCallback)
         viewModelScope.launch { repository.errors.collect(::showError) }
         viewModelScope.launch { repository.state.collect { sessionCoordinator.updateDetails(it.details) } }
+        // 兑底探活：部分 ROM 的网络回调不可靠、进程后台被冻结后回调也可能丢失；
+        // 每 60s 扫一次：存在 offline 主机就触发一轮重连（reconnectAll 自带活跃连接过滤）。
+        viewModelScope.launch {
+            while (isActive) {
+                delay(60_000)
+                val hosts = repository.state.value.hosts.values
+                if (hosts.any { it.connection is ConnectionState.Offline }) repository.reconnectAll()
+            }
+        }
     }
 
     internal suspend fun followTaskFocus(selections: Flow<SessionKey?>) {

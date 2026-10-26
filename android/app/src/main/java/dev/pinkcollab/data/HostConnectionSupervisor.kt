@@ -148,11 +148,13 @@ internal class HostConnectionSupervisor(
             }
         }
 
-        /** 退避：首次 1s，逐次翻倍，最大 30s；连上后由 onOpen 归零。 */
+        /** 退避：首次 500ms，逐次翻倍，上限 15s，加 ±25% 抖动防同步风暴；连上后由 onOpen 归零。 */
         private fun nextBackoffMillis(): Long {
             val attempt = backoffAttempt
             backoffAttempt = (attempt + 1).coerceAtMost(10)
-            return (InitialBackoffMillis shl attempt.coerceAtMost(10)).coerceAtMost(MaxBackoffMillis)
+            val base = (InitialBackoffMillis shl attempt.coerceAtMost(10)).coerceAtMost(MaxBackoffMillis)
+            val jitter = (base * 0.25 * Math.random()).toLong()
+            return base - jitter / 2 + jitter
         }
 
         fun stop() {
@@ -296,7 +298,7 @@ internal fun connectionFailure(error: Throwable, httpCode: Int? = null): Connect
     else -> ConnectionState.Offline("Connection interrupted")
 }
 
-/** 自动重连退避参数：首次 1s，逐次翻倍，上限 30s（保证长期 offline 时也能自动恢复）。 */
-private const val InitialBackoffMillis = 1_000L
-private const val MaxBackoffMillis = 30_000L
+/** 自动重连退避参数：首次 500ms，逐次翻倍，上限 15s，加抖动（快速自愈且防多主机同步风暴）。 */
+private const val InitialBackoffMillis = 500L
+private const val MaxBackoffMillis = 15_000L
 

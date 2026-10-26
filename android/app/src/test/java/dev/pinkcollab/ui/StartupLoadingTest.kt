@@ -61,7 +61,7 @@ class StartupLoadingTest {
     }
 
     @Test
-    fun `a delayed snapshot releases startup without an extra delay`() = runTest {
+    fun `startup timeout releases the first frame on slow networks`() = runTest {
         val states = MutableStateFlow(appWithHost(ConnectionState.Synchronizing))
         var ready = false
         launch {
@@ -70,10 +70,14 @@ class StartupLoadingTest {
         }
 
         runCurrent()
-        advanceTimeBy(60_000)
-        runCurrent()
         assertFalse(ready)
 
+        // 3.5s 超时兜底：慢网/网关未就绪时首帧不再被目录加载阻塞（秒开）。
+        advanceTimeBy(3_500)
+        runCurrent()
+        assertTrue(ready)
+
+        // 快照照常到达，任务页内继续完成加载。
         states.value = appWithHost(
             connection = ConnectionState.Online(1),
             lastSyncedAtEpochMillis = 1,
